@@ -120,6 +120,10 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
             @Override
             public void onClick(View v) {
 
+                mWebView.loadUrl("javascript:setflag('학교')");
+                mWebView.loadUrl("javascript:sendmsg()");
+
+
                 ttsClient = new TextToSpeechClient.Builder()
                         .setSpeechMode(TextToSpeechClient.NEWTONE_TALK_1)     // 음성합성방식
                         .setSpeechSpeed(1.0)            // 발음 속도(0.5~4.0)
