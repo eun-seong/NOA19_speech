@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">NOA</string>
+    <string name="kakao_app_key">b3a3fe7914119e3c8e7457c7754b5d14</string>
+
+    <string name="str_start">"화면을 터치하시면 검색이 시작됩니다. 음성인식은 화면을 터치한 후 실행됩니다."</string>
+    <string name="str_definition">"목적지를 말씀하세요."</string>
+    <string name="str_ask1">"목적지가 "</string>
+    <string name="str_ask2">"가 맞습니까?"</string>
+    <string name="str_no">"목적지를 다시 말씀하세요."</string>
+    <string name="str_navigate">"목적지로 안내하겠습니다."</string>
+    <string name="str_restart">"목적지를 다시 설정하시겠습니까?"</string>
+    <string name="APP_CLOSE_BACK_BUTTON">"뒤로가기를 한 번 더 누르시면 종료됩니다"</string>
+    <string name="str_arrival">"목적지에 도착하였습니다."</string>
+    <string name="str_stairs">"앞에 계단이 있습니다. 조심하세요."</string>
+</resources>
