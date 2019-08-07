@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>Untitled Document</title>
+
+  <!-- ros library -->
+  <script type="text/javascript" src="http://static.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+  <script type="text/javascript" src="http://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+
+  <script type="text/javascript" type="text/javascript">
+    var recieveflag = 0;
+    var time;
+    var cnt = 0;
+    var school = '학교';
+    var hospital = '병원';
+
+    var school_msg = new ROSLIB.Message({
+      position: {
+        x: 0.106090545654,
+        y: 0.102523803711,
+        z: 0.0
+      },
+      orientation: {
+        x: 0.0,
+        y: 0.0,
+        z: -0.0289134714103,
+        w: 0.999581918189
+      }
+    });
+
+    var hospital_msg = new ROSLIB.Message({
+      position: {
+        x: 5.80231809616,
+        y: -0.313957214355,
+        z: 0.0
+      },
+      orientation: {
+        x: 0.0,
+        y: 0.0,
+        z: -0.2653796394,
+        w: 0.964143997021
+      }
+    });
+
+    // Connecting to ROS
+    // -----------------
+
+    var ros = new ROSLIB.Ros({
+      url: 'ws://192.168.1.120:9091/'
+    });
+
+    ros.on('connection', function() {
+      console.log('Connected to websocket server.');
+    });
+
+    ros.on('error', function(error) {
+      console.log('Error connecting to websocket server: ', error);
+    });
+
+    ros.on('close', function() {
+      console.log('Connection to websocket server closed.');
+    });
+
+    // Publishing a Topic
+    // ------------------
+
+    var dst = new ROSLIB.Topic({
+      ros: ros,
+      name: '/move_base_simple/goal',
+      //messageType : 'geometry_msgs/Point'
+      messageType: 'geometry_msgs/PoseStamped'
+    });
+
+    var isSuccess = new ROSLIB.Topic({
+      ros: ros,
+      name: '/isSuccess',
+      messageType: 'std_msgs/Int32'
+    });
+
+    var isStairs = new ROSLIB.Topic({
+      ros: ros,
+      name: '/isStairs',
+      messageType: 'std_msgs/Int32'
+    });
+
+
+    function sendmsg() {
+      document.getElementById("name").innerHTML = recieveflag;
+      //time = new ros.Time().now();
+      if (recieveflag == school) {
+        var msg = new ROSLIB.Message({
+          header: {
+            //stamp: time,
+            frame_id: 'map'
+          },
+          pose: school_msg
+        });
+      } else if (recieveflag == hospital) {
+        var msg = new ROSLIB.Message({
+          header: {
+            //stamp: time,
+            frame_id: 'map'
+          },
+          pose: hospital_msg
+        });
+      }
+
+      dst.publish(msg);
+    }
+
+    isSuccess.subscribe(function(message) {
+      if (message.data == 1) Success();
+    });
+
+    isStairs.subscribe(function(message){
+      if(message.data==1) Stairs();
+    });
+
+    function Success() {
+      document.getElementById("name").innerHTML = "Success!";
+      window.NOA.SuccessArrival();
+    }
+
+    function Stairs(){
+      document.getElementById("name").innerHTML="There is stairs!";
+      window.NOA.thereIsStairs();
+    }
+
+    function setflag(flagFromAndroid) {
+      recieveflag = flagFromAndroid;
+    }
+  </script>
+
+</head>
+
+<body>
+  <p id="name">test text</p>
+
+</body>
+
+</html>
