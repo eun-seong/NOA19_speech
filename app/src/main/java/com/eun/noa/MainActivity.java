@@ -94,7 +94,7 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
         mWebView.setWebViewClient(new WebViewClient());                 // 웹뷰 클라이언트
         mWebView.setWebChromeClient(new WebChromeClient());             // 웹뷰 크롬 클라이언트
         mWebView.getSettings().setJavaScriptEnabled(true);              // 웹뷰에서 자바스크립트 사용 가능하게
-        mWebView.loadUrl("http://192.168.1.120:8080/test.html");        // 서버에 있는 html 파일
+        mWebView.loadUrl("http://192.168.1.120:8080/ros_js.html");      // 서버에 있는 html 파일
         mWebView.setWebContentsDebuggingEnabled(true);                  // 크롬에서 웹뷰 디버깅 가능하게
         mWebView.addJavascriptInterface(new WebBridge(), "NOA");  // js에서 안드로이드 함수를 쓰기 위한 브릿지 설정 -> window.NOA.functionname();
 
