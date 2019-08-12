@@ -111,7 +111,7 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
         mWebView.setWebViewClient(new WebViewClient());                 // 웹뷰 클라이언트
         mWebView.setWebChromeClient(new WebChromeClient());             // 웹뷰 크롬 클라이언트
         mWebView.getSettings().setJavaScriptEnabled(true);              // 웹뷰에서 자바스크립트 사용 가능하게
-        mWebView.loadUrl("http://192.168.1.148:8080/ros_js.html");      // 서버에 있는 html 파일
+        mWebView.loadUrl("http://192.168.1.150:8080/ros_js.html");      // 서버에 있는 html 파일
         mWebView.setWebContentsDebuggingEnabled(true);                  // 크롬에서 웹뷰 디버깅 가능하게
         mWebView.addJavascriptInterface(new WebBridge(), "NOA");  // js에서 안드로이드 함수를 쓰기 위한 브릿지 설정 -> window.NOA.functionname();
 
@@ -157,7 +157,7 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
                 ttsClient = new TextToSpeechClient.Builder()
                         .setSpeechMode(TextToSpeechClient.NEWTONE_TALK_1)     // 음성합성방식
                         .setSpeechSpeed(1.0)            // 발음 속도(0.5~4.0)
-                        .setSpeechVoice(TextToSpeechClient.VOICE_WOMAN_DIALOG_BRIGHT)  //TTS 음색 모드 설정(여성 차분한 낭독체)
+                        .setSpeechVoice(TextToSpeechClient.VOICE_WOMAN_READ_CALM)  //TTS 음색 모드 설정(여성 차분한 낭독체)
                         .setListener(MainActivity.this)
                         .build();
 
@@ -174,7 +174,8 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
                     }
 
                     mEditText.setText(sb.toString());
-                    ttsClient.play("이전 목적지는" + mEditText.getText() + "입니다.");
+                    speech_text="이전 목적지는" + sb.toString() + "입니다.";
+                    ttsClient.play(speech_text);
 
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
