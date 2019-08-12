@@ -7,7 +7,10 @@
     tools:context=".MainActivity">
 
 
-
+    <EditText
+        android:id="@+id/edit_text"
+        android:layout_width="match_parent"
+        android:layout_height="50dp" />
     <TextView
         android:id="@+id/tv"
         android:layout_width="wrap_content"
