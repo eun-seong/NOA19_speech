@@ -12,6 +12,8 @@
     <string name="APP_CLOSE_BACK_BUTTON">"뒤로가기를 한 번 더 누르시면 종료됩니다"</string>
     <string name="str_arrival">"목적지에 도착하였습니다."</string>
     <string name="str_stairs">"앞에 계단이 있습니다. 조심하세요."</string>
-    <string name="str_redlight">"앞에 신호등이 있습니다. 대기하세요."</string>
+    <string name="str_redlight">"전방에 신호등이 있습니다. 대기하세요."</string>
     <string name="str_bluelight">"신호등을 건너겠습니다."</string>
+    <string name="str_prevdestination">"입니다. 이전 목적지로 가시겠습니까?"</string>
+    <string name="str_reanswer">"다시 말씀하세요."</string>
 </resources>

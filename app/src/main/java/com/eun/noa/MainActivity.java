@@ -1,6 +1,7 @@
 package com.eun.noa;
 
 import android.Manifest;
+import android.app.Presentation;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -51,7 +52,6 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
     private TextView textView;
     private WebView mWebView;
     private Button reloadbutton;
-    private EditText mEditText;
 
     private long backKeyPressedTime;                    // 앱종료 위한 백버튼 누른시간
     private static final String TAG = "MainActivity";   // 로그에 사용
@@ -59,6 +59,7 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
     private String state_text = null;                   // 음성 안내 상태 저장 변수 -> 밑의 변수랑 같이 이용
     private String destination;
     private String prev_destination;
+    private String tmp_state;
 
     // 음성 안내 순서를 알기 위한 string 변수
     private static final String EXPLANATION = "EXPLANATION";
@@ -70,6 +71,10 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
     private static final String YES_REASK = "YES";
     private static final String NO_REASK = "NO";
     private static final String ARRIVAL = "ARRIVAL";
+    private static final String PREV_DESTINATION = "PREV_DESTINATION";
+    private static final String REANSWER = "REANSWER";
+    private static final String REANSWER_ = "REANSWER_";
+
 
     private static final String FILE_NAME = "destination.txt";
 
@@ -83,7 +88,7 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
         button = findViewById(R.id.bt);
         reloadbutton = findViewById(R.id.bt_reload);
         textView = findViewById(R.id.tv);
-        mEditText = findViewById(R.id.edit_text);
+
 
         // 음성인식을 하는데 필요한 권한 묻기
         // 마이크, 인터넷 권한 필요
@@ -105,7 +110,7 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
         mWebView.setWebViewClient(new WebViewClient());                 // 웹뷰 클라이언트
         mWebView.setWebChromeClient(new WebChromeClient());             // 웹뷰 크롬 클라이언트
         mWebView.getSettings().setJavaScriptEnabled(true);              // 웹뷰에서 자바스크립트 사용 가능하게
-        mWebView.loadUrl("http://192.168.1.187:8080/ros_js.html");      // 서버에 있는 html 파일
+        mWebView.loadUrl("http://192.168.0.11:8080/ros_js.html");      // 서버에 있는 html 파일
         mWebView.setWebContentsDebuggingEnabled(true);                  // 크롬에서 웹뷰 디버깅 가능하게
         mWebView.addJavascriptInterface(new WebBridge(), "NOA");  // js에서 안드로이드 함수를 쓰기 위한 브릿지 설정 -> window.NOA.functionname();
 
@@ -159,10 +164,12 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
                         sb.append(text).append("\n");
                     }
 
-                    mEditText.setText(sb.toString());
-
+                    textView.setText(sb.toString());
                     prev_destination = sb.toString();
-                    ttsClient.play("이전 목적지는" + prev_destination + "입니다.");
+
+                    speech_text = "이전 목적지는" + prev_destination + getString(R.string.str_prevdestination);
+                    ttsClient.play(speech_text);
+                    state_text = PREV_DESTINATION;
 
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
@@ -258,7 +265,7 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
                     } catch (IOException e) {
                         e.printStackTrace();
                     } finally {
-                        if(fos != null){
+                        if (fos != null) {
                             try {
                                 fos.close();
                             } catch (IOException e) {
@@ -285,6 +292,24 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
                     state_text = EXPLANATION;
                     mWebView.loadUrl("javascript:sendmsg()");
                     ttsClient.play(speech_text);
+                } else if (state_text.equals(PREV_DESTINATION)) {
+                    client = builder.build();
+
+                    Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
+
+                    client.setSpeechRecognizeListener(MainActivity.this);
+                    client.startRecording(true);
+                } else if (state_text.equals(REANSWER)) {
+                    speech_text = getString(R.string.str_reanswer);
+                    ttsClient.play(speech_text);
+                    state_text = REANSWER_;
+                } else if (state_text.equals(REANSWER_)) {
+                    client = builder.build();
+
+                    Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
+
+                    client.setSpeechRecognizeListener(MainActivity.this);
+                    state_text = tmp_state;
                 }
             }
         });
@@ -391,15 +416,33 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
                 else if (state_text.equals(REASK_ANSWER)) { // 목적지가 올바르게 인식되었는지 확인할 때
                     if (textView.getText().equals("응") || textView.getText().equals("네") || textView.getText().equals("예"))
                         state_text = YES_REASK;
-                    else
+                    else if (textView.getText().equals("아니") || textView.getText().equals("아니요"))
                         state_text = NO_REASK;
+                    else {
+                        state_text = REANSWER;
+                        tmp_state = state_text;
+                    }
                 } else if (state_text.equals(RESTART)) {    // 목적지를 다시 설정할 때
                     if (textView.getText().equals("응") || textView.getText().equals("네") || textView.getText().equals("예"))
                         // 맞으면 처음으로
                         state_text = EXPLANATION;
-                    else
+                    else if (textView.getText().equals("아니") || textView.getText().equals("아니요"))
                         // 아니면 그대로
                         state_text = NAVIGATE;
+                    else {
+                        state_text = REANSWER;
+                        tmp_state = state_text;
+                    }
+                } else if (state_text.equals(PREV_DESTINATION)) {
+                    if (textView.getText().equals("응") || textView.getText().equals("네") || textView.getText().equals("예")) {
+                        state_text = NAVIGATE;
+                        destination = prev_destination;
+                    } else if (textView.getText().equals("아니") || textView.getText().equals("아니요"))
+                        state_text = EXPLANATION;
+                    else {
+                        state_text = REANSWER;
+                        tmp_state = state_text;
+                    }
                 }
             }
         });
