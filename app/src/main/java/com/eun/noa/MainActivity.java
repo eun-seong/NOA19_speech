@@ -30,16 +30,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
-
-
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-
-
 import java.util.ArrayList;
 
 
@@ -55,12 +51,14 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
     private TextView textView;
     private WebView mWebView;
     private Button reloadbutton;
+    private EditText mEditText;
 
     private long backKeyPressedTime;                    // 앱종료 위한 백버튼 누른시간
     private static final String TAG = "MainActivity";   // 로그에 사용
     private String speech_text;                         // 음성인식한 단어 저장
     private String state_text = null;                   // 음성 안내 상태 저장 변수 -> 밑의 변수랑 같이 이용
     private String destination;
+    private String prev_destination;
 
     // 음성 안내 순서를 알기 위한 string 변수
     private static final String EXPLANATION = "EXPLANATION";
@@ -72,12 +70,8 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
     private static final String YES_REASK = "YES";
     private static final String NO_REASK = "NO";
     private static final String ARRIVAL = "ARRIVAL";
-    private static final String PREVIOUS = "PREVIOUS";
-
 
     private static final String FILE_NAME = "destination.txt";
-
-    EditText mEditText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,7 +83,7 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
         button = findViewById(R.id.bt);
         reloadbutton = findViewById(R.id.bt_reload);
         textView = findViewById(R.id.tv);
-        mEditText=findViewById(R.id.edit_text);
+        mEditText = findViewById(R.id.edit_text);
 
         // 음성인식을 하는데 필요한 권한 묻기
         // 마이크, 인터넷 권한 필요
@@ -111,7 +105,7 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
         mWebView.setWebViewClient(new WebViewClient());                 // 웹뷰 클라이언트
         mWebView.setWebChromeClient(new WebChromeClient());             // 웹뷰 크롬 클라이언트
         mWebView.getSettings().setJavaScriptEnabled(true);              // 웹뷰에서 자바스크립트 사용 가능하게
-        mWebView.loadUrl("http://192.168.1.150:8080/ros_js.html");      // 서버에 있는 html 파일
+        mWebView.loadUrl("http://192.168.1.148:8080/ros_js.html");      // 서버에 있는 html 파일
         mWebView.setWebContentsDebuggingEnabled(true);                  // 크롬에서 웹뷰 디버깅 가능하게
         mWebView.addJavascriptInterface(new WebBridge(), "NOA");  // js에서 안드로이드 함수를 쓰기 위한 브릿지 설정 -> window.NOA.functionname();
 
@@ -140,16 +134,8 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
             }
         });
 
-
-
-
-
-
-
-
         // 이전 목적
-        button.setOnLongClickListener(new View.OnLongClickListener()
-        {
+        button.setOnLongClickListener(new View.OnLongClickListener() {
 
             @Override
             public boolean onLongClick(View v) {
@@ -166,32 +152,31 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
                     fis = openFileInput(FILE_NAME);
                     InputStreamReader isr = new InputStreamReader(fis);
                     BufferedReader br = new BufferedReader(isr);
-                    StringBuilder sb=new StringBuilder();
+                    StringBuilder sb = new StringBuilder();
                     String text;
 
-                    while((text = br.readLine()) != null){
+                    while ((text = br.readLine()) != null) {
                         sb.append(text).append("\n");
                     }
 
                     mEditText.setText(sb.toString());
-                    speech_text="이전 목적지는" + sb.toString() + "입니다.";
-                    ttsClient.play(speech_text);
+
+                    prev_destination = sb.toString();
+                    ttsClient.play("이전 목적지는" + prev_destination + "입니다.");
 
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
-                } catch (IOException e){
+                } catch (IOException e) {
                     e.printStackTrace();
-                } finally{
-                    if(fis != null){
-                        try{
+                } finally {
+                    if (fis != null) {
+                        try {
                             fis.close();
-                        } catch (IOException e)
-                        {
+                        } catch (IOException e) {
                             e.printStackTrace();
                         }
                     }
                 }
-
                 return true;
 
             }
@@ -200,8 +185,6 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
 
         // 음성인식하는 버튼
         button.setOnClickListener(new View.OnClickListener() {
-
-
             @Override
             public void onClick(View v) {
 
@@ -242,10 +225,6 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
                     state_text = REASK_ANSWER;
                     ttsClient.play("목적지가 " + speech_text + "입니까?");
 
-
-
-
-
                 } else if (state_text.equals(REASK_ANSWER)) {       // 목적지 재확인 시 대답
                     client = builder.build();
 
@@ -269,13 +248,10 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
                     ttsClient.play(speech_text);
 
 
-
-                    String text = destination;
                     FileOutputStream fos = null;
-
                     try {
                         fos = openFileOutput(FILE_NAME, MODE_PRIVATE);
-                        fos.write(text.getBytes());
+                        fos.write(destination.getBytes());
                         Toast.makeText(MainActivity.this, "Saved to " + getFilesDir() + "/" + FILE_NAME, Toast.LENGTH_LONG).show();
                     } catch (FileNotFoundException e) {
                         e.printStackTrace();
@@ -290,8 +266,6 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
                             }
                         }
                     }
-
-
 
                 } else if (state_text.equals(NAVIGATE)) {       // 안내하기
                     speech_text = getString(R.string.str_restart);
@@ -314,15 +288,7 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
                 }
             }
         });
-
     }
-
-
-
-
-
-
-
 
     private void handleError(int errorCode) {
         String errorText;
