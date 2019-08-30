@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
@@ -22,6 +23,7 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -39,7 +41,9 @@ public class MainActivity extends Activity {
     private static final int REQUEST_CODE_AUDIO_AND_WRITE_EXTERNAL_STORAGE = 0;
     private static final String TAG = "MainActivity";   // 로그에 사용
     private static final String FILE_NAME = "destination.txt";
-    private static final String url = "http://192.168.1.187:8080/" + "ros_js.html";
+    private static String url = "http://192.168.1.187:8080/" + "ros_js.html";
+    private static final int VIBRATESECONDS = 300;
+    private static final int AMPLITUDE = 50;
 
     // 음성 안내 순서를 알기 위한 string 변수
     // "_"는 "예/아니요"로 하는 음성 인식
@@ -61,7 +65,12 @@ public class MainActivity extends Activity {
     private TextView textView;
     private WebView mWebView;
     private Button reloadbutton;
+    private Button submit_server;
+    private Button submit_ros;
     private Vibrator vibrator;
+    private EditText eText_url;
+    private EditText eText_server;
+    private EditText eText_ros;
 
     private long backKeyPressedTime;                    // 앱종료 위한 백버튼 누른시간
     private String speech_text;                         // 음성인식한 단어 저장
@@ -88,9 +97,14 @@ public class MainActivity extends Activity {
         // 레이아웃 변수 설정
         mWebView = (WebView) findViewById(R.id.webView);
         button = findViewById(R.id.bt);
+        submit_server = findViewById(R.id.bt_server);
+        submit_ros = findViewById(R.id.bt_ros);
         reloadbutton = findViewById(R.id.bt_reload);
         textView = findViewById(R.id.tv);
         vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+        eText_url = findViewById(R.id.text_url);
+        eText_server = findViewById(R.id.text_server);
+        eText_ros = findViewById(R.id.text_ros);
 
         // 웹뷰 설정
         mWebView.loadUrl(url);                                          // 서버에 있는 html 파일
@@ -120,13 +134,31 @@ public class MainActivity extends Activity {
             @Override
             public void onClick(View v) {
                 mWebView.reload();
+                mWebView.loadUrl("javascript:changeurl('" + eText_url.getText() + "', '" + eText_ros.getText() + "')");
             }
         });
 
-        // 이전 목적
+        submit_server.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                url = "http://" + eText_url.getText() + ":" + eText_server.getText() + "/ros_js.html";
+                mWebView.loadUrl(url);
+            }
+        });
+
+        submit_ros.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mWebView.loadUrl("javascript:changeurl('" + eText_ros.getText() + "')");
+            }
+        });
+
+        // 이전 목적지
         button.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
+                vibrator.vibrate(VibrationEffect.createOneShot(VIBRATESECONDS, AMPLITUDE));
+
                 FileInputStream fis = null;
                 try {
                     fis = openFileInput(FILE_NAME);
@@ -477,7 +509,7 @@ public class MainActivity extends Activity {
                     button.setEnabled(true);
                 }
             });
-            vibrator.vibrate(300);
+            vibrator.vibrate(VibrationEffect.createOneShot(VIBRATESECONDS, AMPLITUDE));
         }
 
         @Override
@@ -528,7 +560,7 @@ public class MainActivity extends Activity {
                     button.setEnabled(true);
                 }
             });
-            vibrator.vibrate(300);
+            vibrator.vibrate(VibrationEffect.createOneShot(VIBRATESECONDS, AMPLITUDE));
         }
 
         // 더 이상 쓰지 않는 경우에는 다음과 같이 해제
