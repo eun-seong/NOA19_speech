@@ -1,12 +1,9 @@
 package com.eun.noa;
 
 import android.Manifest;
-import android.app.Presentation;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.Vibrator;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
@@ -22,16 +19,12 @@ import android.app.Activity;
 import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
-import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -49,18 +42,19 @@ public class MainActivity extends Activity {
     private static final String url = "http://192.168.0.11:8080/" + "ros_js.html";
 
     // 음성 안내 순서를 알기 위한 string 변수
+    // "_"는 "예/아니요"로 하는 음성 인식
     private static final String EXPLANATION = "EXPLANATION";
     private static final String SEARCH = "SEARCH";
     private static final String REASK = "REASK";
+    private static final String REASK_ = "REASK_";
     private static final String NAVIGATE = "NAVIGATE";
-    private static final String REASK_ANSWER = "REASK_ANSWER";
-    private static final String RESTART = "RESTART";
-    private static final String YES_REASK = "YES";
-    private static final String NO_REASK = "NO";
+    private static final String REASK_YES = "YES";
+    private static final String REASK_NO = "NO";
     private static final String ARRIVAL = "ARRIVAL";
-    private static final String PREV_DESTINATION = "PREV_DESTINATION";
+    private static final String PREV_DESTINATION_ = "PREV_DESTINATION_";
     private static final String REANSWER = "REANSWER";
     private static final String REANSWER_ = "REANSWER_";
+    private static final String RESTART_ = "RESTART_";
 
     // 레이아웃 변수
     private ImageButton button;
@@ -150,7 +144,7 @@ public class MainActivity extends Activity {
 
                     speech_text = "이전 목적지는" + prev_destination + getString(R.string.str_prevdestination);
                     tts.ttsClient.play(speech_text);
-                    state_text = PREV_DESTINATION;
+                    state_text = PREV_DESTINATION_;
 
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
@@ -166,9 +160,7 @@ public class MainActivity extends Activity {
                     }
                 }
                 return true;
-
             }
-
         });
 
         // 음성인식하는 버튼
@@ -179,49 +171,41 @@ public class MainActivity extends Activity {
 //                mWebView.loadUrl("javascript:setflag('학교')");
 //                mWebView.loadUrl("javascript:sendmsg()");
 
+                button.setEnabled(false);
+
                 switch (state_text) {
-                    case EXPLANATION:   // 목적지 묻기
-                        // 음성 합성할 문장으로 speech_text 설정
-                        speech_text = getString(R.string.str_definition);
-                        // 검색을 하기 위해 state_text 설정
-                        state_text = SEARCH;
-                        // 음성 합성
+                    case EXPLANATION:                   // 목적지 묻기
+                        state_text = SEARCH;// 검색을 하기 위해 state_text 설정
+                        speech_text = getString(R.string.str_definition);// 음성 합성할 문장으로 speech_text 설정
+                        tts.ttsClient.play(speech_text);// 음성 합성
+                        break;
+                    case SEARCH:                        // 검색하기
+                        // 음성 인식 시작할 때 나타나는 토스트 메세지
+                        Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
+                        stt.client.startRecording(true);
+                        break;
+                    case REASK:                         // 인식한 목적지가 맞는지 확인하기
+                        state_text = REASK_;
+                        destination = textView.getText().toString();
+                        speech_text = "목적지가 " + destination + "입니까?";
                         tts.ttsClient.play(speech_text);
                         break;
-                    case SEARCH:    // 검색하기
-                        // 음성 인식 시작할 때 나타나는 토스트 메세지
+                    case REASK_:                  // 목적지 재확인 시 대답
                         Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
                         stt.client.startRecording(true);
                         break;
-
-                    case REASK:      // 인식한 목적지가 맞는지 확인하기
-                        speech_text = textView.getText().toString();
-                        destination = speech_text;
-                        state_text = REASK_ANSWER;
-                        tts.ttsClient.play("목적지가 " + speech_text + "입니까?");
-                        break;
-
-                    case REASK_ANSWER:       // 목적지 재확인 시 대답
-                        // 음성 인식 시작할 때 나타나는 토스트 메세지
-                        Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
-                        stt.client.startRecording(true);
-                        break;
-
-                    case NO_REASK:       // 목적지가 잘못 인식되었을 경우
+                    case REASK_NO:                      // 목적지가 잘못 인식되었을 경우
+                        state_text = SEARCH;
                         speech_text = getString(R.string.str_no);
-                        state_text = SEARCH;
                         tts.ttsClient.play(speech_text);
                         break;
-
-                    case YES_REASK:      // 목적지가 잘 인식되었을 경우
-                        speech_text = getString(R.string.str_navigate);
-
-                        mWebView.loadUrl("javascript:setflag('" + destination + "')");      // js의 함수 setflag() : 목적지 이름을 변수에 저장
-                        mWebView.loadUrl("javascript:sendmsg()");       // js의 함수 sendmsg() : ros로 msg를 보내기
+                    case REASK_YES:                     // 목적지가 잘 인식되었을 경우
+                        mWebView.loadUrl("javascript:setflag('" + destination + "')");// js의 함수 setflag() : 목적지 이름을 변수에 저장
+                        mWebView.loadUrl("javascript:sendmsg()");// js의 함수 sendmsg() : ros로 msg를 보내기
 
                         state_text = NAVIGATE;
+                        speech_text = getString(R.string.str_navigate);
                         tts.ttsClient.play(speech_text);
-
 
                         FileOutputStream fos = null;
                         try {
@@ -242,168 +226,72 @@ public class MainActivity extends Activity {
                             }
                         }
                         break;
-
-                    case NAVIGATE:       // 안내하기
+                    case NAVIGATE:                      // 안내하기
+                        state_text = RESTART_;
                         speech_text = getString(R.string.str_restart);
-                        state_text = RESTART;
                         tts.ttsClient.play(speech_text);
                         break;
-
-                    case RESTART:        // 목적지를 다시 설정할 경우
-                        // 음성 인식 시작할 때 나타나는 토스트 메세지
+                    case RESTART_:                       // 목적지를 다시 설정할 경우
                         Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
                         stt.client.startRecording(true);
                         break;
-
-                    case ARRIVAL:        // 도착했을 경우
-                        speech_text = getString(R.string.str_ask2);
+                    case ARRIVAL:                   // 도착했을 경우
                         state_text = EXPLANATION;
-                        mWebView.loadUrl("javascript:sendmsg()");
+                        speech_text = getString(R.string.str_ask2);
                         tts.ttsClient.play(speech_text);
                         break;
-                    case PREV_DESTINATION:
-                        // 음성 인식 시작할 때 나타나는 토스트 메세지
+                    case PREV_DESTINATION_:              // 이전 목적지로 갈 것인지에 대한 대답
                         Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
                         stt.client.startRecording(true);
                         break;
-                    case REANSWER:
+                    case REANSWER:                      // 예/아니오 외에 다른 대답이 나올 경우
+                        state_text = REANSWER_;
                         speech_text = getString(R.string.str_reanswer);
                         tts.ttsClient.play(speech_text);
-                        state_text = REANSWER_;
                         break;
-                    case REANSWER_:
-                        // 음성 인식 시작할 때 나타나는 토스트 메세지
+                    case REANSWER_:                     // REANSWER에 대한 대답
+                        state_text = tmp_state;
                         Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
                         stt.client.startRecording(true);
-                        state_text = tmp_state;
+                        break;
+                    default:
+                        button.setEnabled(true);
+                        break;
                 }
-
-
-//
-//
-//                if(state_text.equals(EXPLANATION))
-//
-//            {   // 목적지 묻기
-//                // 음성 합성할 문장으로 speech_text 설정
-//                speech_text = getString(R.string.str_definition);
-//                // 검색을 하기 위해 state_text 설정
-//                state_text = SEARCH;
-//                // 음성 합성
-//                tts.ttsClient.play(speech_text);
-//
-//            } else if(state_text.equals(SEARCH))
-//
-//            {    // 검색하기
-//                // 음성 인식 시작할 때 나타나는 토스트 메세지
-//                Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
-//                stt.client.startRecording(true);
-//
-//            } else if(state_text.equals(REASK))
-//
-//            {      // 인식한 목적지가 맞는지 확인하기
-//                speech_text = textView.getText().toString();
-//                destination = speech_text;
-//                state_text = REASK_ANSWER;
-//                tts.ttsClient.play("목적지가 " + speech_text + "입니까?");
-//
-//            } else if(state_text.equals(REASK_ANSWER))
-//
-//            {       // 목적지 재확인 시 대답
-//                // 음성 인식 시작할 때 나타나는 토스트 메세지
-//                Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
-//                stt.client.startRecording(true);
-//
-//            } else if(state_text.equals(NO_REASK))
-//
-//            {       // 목적지가 잘못 인식되었을 경우
-//                speech_text = getString(R.string.str_no);
-//                state_text = SEARCH;
-//                tts.ttsClient.play(speech_text);
-//
-//            } else if(state_text.equals(YES_REASK))
-//
-//            {      // 목적지가 잘 인식되었을 경우
-//                speech_text = getString(R.string.str_navigate);
-//
-//                mWebView.loadUrl("javascript:setflag('" + destination + "')");      // js의 함수 setflag() : 목적지 이름을 변수에 저장
-//                mWebView.loadUrl("javascript:sendmsg()");       // js의 함수 sendmsg() : ros로 msg를 보내기
-//
-//                state_text = NAVIGATE;
-//                tts.ttsClient.play(speech_text);
-//
-//
-//                FileOutputStream fos = null;
-//                try {
-//                    fos = openFileOutput(FILE_NAME, MODE_PRIVATE);
-//                    fos.write(destination.getBytes());
-//                    textView.setText("Saved to " + getFilesDir() + "/" + FILE_NAME);
-//                } catch (FileNotFoundException e) {
-//                    e.printStackTrace();
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                } finally {
-//                    if (fos != null) {
-//                        try {
-//                            fos.close();
-//                        } catch (IOException e) {
-//                            e.printStackTrace();
-//                        }
-//                    }
-//                }
-//
-//            } else if(state_text.equals(NAVIGATE))
-//
-//            {       // 안내하기
-//                speech_text = getString(R.string.str_restart);
-//                state_text = RESTART;
-//                tts.ttsClient.play(speech_text);
-//
-//            } else if(state_text.equals(RESTART))
-//
-//            {        // 목적지를 다시 설정할 경우
-//                // 음성 인식 시작할 때 나타나는 토스트 메세지
-//                Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
-//                stt.client.startRecording(true);
-//
-//            } else if(state_text.equals(ARRIVAL))
-//
-//            {        // 도착했을 경우
-//                speech_text = getString(R.string.str_ask2);
-//                state_text = EXPLANATION;
-//                mWebView.loadUrl("javascript:sendmsg()");
-//                tts.ttsClient.play(speech_text);
-//            } else if(state_text.equals(PREV_DESTINATION))
-//
-//            {
-//                // 음성 인식 시작할 때 나타나는 토스트 메세지
-//                Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
-//                stt.client.startRecording(true);
-//            } else if(state_text.equals(REANSWER))
-//
-//            {
-//                speech_text = getString(R.string.str_reanswer);
-//                tts.ttsClient.play(speech_text);
-//                state_text = REANSWER_;
-//            } else if(state_text.equals(REANSWER_))
-//
-//            {
-//                // 음성 인식 시작할 때 나타나는 토스트 메세지
-//                Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
-//                stt.client.startRecording(true);
-//                state_text = tmp_state;
-//            }
             }
         });
     }
 
-/******************************************************************************************/
-/******************************************************************************************/
+    /***************************************************************************************************************************/
 
-    /******************************************************************************************/
+    //뒤로가기 2번하면 앱종료
+    @Override
+    public void onBackPressed() {
+        //1번째 백버튼 클릭
+        if (System.currentTimeMillis() > backKeyPressedTime + 2000) {
+            backKeyPressedTime = System.currentTimeMillis();
+            Toast.makeText(this, getString(R.string.APP_CLOSE_BACK_BUTTON), Toast.LENGTH_SHORT).show();
+        }
+        //2번째 백버튼 클릭 (종료)
+        else {
+            AppFinish();
+        }
+    }
+
+    //앱종료
+    public void AppFinish() {
+        finish();
+        System.exit(0);
+        android.os.Process.killProcess(android.os.Process.myPid());
+    }
 
 
-// 자바스크립트에서 안드로이드 함수 호출할 때 사용
-// 자바스크립트 코드 : window.NOA.함수이름()
+    /***************************************************************************************************************************/
+    /***************************************************************************************************************************/
+    /***************************************************************************************************************************/
+
+    // 자바스크립트에서 안드로이드 함수 호출할 때 사용
+    // 자바스크립트 코드 : window.NOA.함수이름()
     class WebBridge {
         @JavascriptInterface
         public void SuccessArrival() {  // 목적지에 도착할 경우 실행
@@ -419,7 +307,6 @@ public class MainActivity extends Activity {
                     speech_text = getString(R.string.str_arrival);
                     state_text = EXPLANATION;
                     tts.ttsClient.play(speech_text);
-
                 }
             });
         }
@@ -481,11 +368,9 @@ public class MainActivity extends Activity {
         }
     }
 
-
-/******************************************************************************************/
-/******************************************************************************************/
-/******************************************************************************************/
-
+    /***************************************************************************************************************************/
+    /***************************************************************************************************************************/
+    /***************************************************************************************************************************/
 
     class STT extends Activity implements SpeechRecognizeListener {
         protected SpeechRecognizerClient client;
@@ -532,26 +417,26 @@ public class MainActivity extends Activity {
 
                     if (textView.getText().equals("응") || textView.getText().equals("네") || textView.getText().equals("예")) {
                         switch (state_text) {
-                            case REASK_ANSWER:
-                                state_text = YES_REASK;
+                            case REASK_:
+                                state_text = REASK_YES;
                                 break;
-                            case RESTART:
+                            case RESTART_:
                                 state_text = EXPLANATION;
                                 break;
-                            case PREV_DESTINATION:
-                                state_text = YES_REASK;
+                            case PREV_DESTINATION_:
+                                state_text = REASK_YES;
                                 destination = prev_destination;
                                 break;
                         }
                     } else if (textView.getText().equals("아니") || textView.getText().equals("아니요")) {
                         switch (state_text) {
-                            case REASK_ANSWER:
-                                state_text = NO_REASK;
+                            case REASK_:
+                                state_text = REASK_NO;
                                 break;
-                            case RESTART:
+                            case RESTART_:
                                 state_text = NAVIGATE;
                                 break;
-                            case PREV_DESTINATION:
+                            case PREV_DESTINATION_:
                                 state_text = EXPLANATION;
                                 break;
                         }
@@ -586,6 +471,12 @@ public class MainActivity extends Activity {
 
         @Override
         public void onFinished() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    button.setEnabled(true);
+                }
+            });
             vibrator.vibrate(300);
         }
 
@@ -606,11 +497,9 @@ public class MainActivity extends Activity {
     }
 
 
-/******************************************************************************************/
-/******************************************************************************************/
-
-    /******************************************************************************************/
-
+    /***************************************************************************************************************************/
+    /***************************************************************************************************************************/
+    /***************************************************************************************************************************/
 
     class TTS extends Activity implements TextToSpeechListener {
         protected TextToSpeechClient ttsClient;
@@ -633,6 +522,12 @@ public class MainActivity extends Activity {
             final String strInacctiveText = "handleFinished() SentSize : " + intSentSize + "  RecvSize : " + intRecvSize;
 
             Log.i(TAG, strInacctiveText);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    button.setEnabled(true);
+                }
+            });
             vibrator.vibrate(300);
         }
 
@@ -688,7 +583,6 @@ public class MainActivity extends Activity {
             final String statusMessage = errorText + " (" + errorCode + ")";
             Log.i(TAG, statusMessage);
         }
-
     }
 
 }
