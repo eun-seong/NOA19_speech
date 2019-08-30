@@ -47,6 +47,7 @@ public class MainActivity extends Activity implements TextToSpeechListener, Spee
     private SpeechRecognizerClient.Builder builder;
     private static final int REQUEST_CODE_AUDIO_AND_WRITE_EXTERNAL_STORAGE = 0;
 
+    
     // 레이아웃 변수
     private ImageButton button;
     private TextView textView;
