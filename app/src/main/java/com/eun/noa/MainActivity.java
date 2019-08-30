@@ -2,12 +2,10 @@ package com.eun.noa;
 
 import android.Manifest;
 import android.app.Presentation;
-import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Vibrator;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
@@ -42,11 +40,26 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements TextToSpeechListener, SpeechRecognizeListener {
+    // 뉴톤/톡 api 변수
+    private TextToSpeechClient ttsClient;
+    private SpeechRecognizerClient client;
+    private SpeechRecognizerClient.Builder builder;
     private static final int REQUEST_CODE_AUDIO_AND_WRITE_EXTERNAL_STORAGE = 0;
+
+    // 레이아웃 변수
+    private ImageButton button;
+    private TextView textView;
+    private WebView mWebView;
+    private Button reloadbutton;
+
+    private long backKeyPressedTime;                    // 앱종료 위한 백버튼 누른시간
     private static final String TAG = "MainActivity";   // 로그에 사용
-    private static final String FILE_NAME = "destination.txt";
-    private static final String url = "http://192.168.0.11:8080/" + "ros_js.html";
+    private String speech_text;                         // 음성인식한 단어 저장
+    private String state_text = null;                   // 음성 안내 상태 저장 변수 -> 밑의 변수랑 같이 이용
+    private String destination;
+    private String prev_destination;
+    private String tmp_state;
 
     // 음성 안내 순서를 알기 위한 string 변수
     private static final String EXPLANATION = "EXPLANATION";
@@ -62,22 +75,8 @@ public class MainActivity extends Activity {
     private static final String REANSWER = "REANSWER";
     private static final String REANSWER_ = "REANSWER_";
 
-    private TTS tts;
-    private STT stt;
 
-    // 레이아웃 변수
-    private ImageButton button;
-    private TextView textView;
-    private WebView mWebView;
-    private Vibrator vibrator;
-    private Button reloadbutton;
-
-    private long backKeyPressedTime;                    // 앱종료 위한 백버튼 누른시간
-    private String speech_text;                         // 음성인식한 단어 저장
-    private String state_text = null;                   // 음성 안내 상태 저장 변수 -> 밑의 변수랑 같이 이용
-    private String destination;
-    private String prev_destination;
-    private String tmp_state;
+    private static final String FILE_NAME = "destination.txt";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,9 +86,9 @@ public class MainActivity extends Activity {
         // 레이아웃 변수 설정
         mWebView = (WebView) findViewById(R.id.webView);
         button = findViewById(R.id.bt);
-        textView = findViewById(R.id.tv);
         reloadbutton = findViewById(R.id.bt_reload);
-        vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+        textView = findViewById(R.id.tv);
+
 
         // 음성인식을 하는데 필요한 권한 묻기
         // 마이크, 인터넷 권한 필요
@@ -100,28 +99,37 @@ public class MainActivity extends Activity {
 
 
         // 음성합성 초기화
+        SpeechRecognizerManager.getInstance().initializeLibrary(this);
         TextToSpeechManager.getInstance().initializeLibrary(getApplicationContext());
-        tts = new TTS();
 
         // 음성인식 초기화
         SpeechRecognizerManager.getInstance().initializeLibrary(this);
-        stt = new STT();
+        builder = new SpeechRecognizerClient.Builder().setServiceType(SpeechRecognizerClient.SERVICE_TYPE_WEB);
 
         // 웹뷰 설정
-        mWebView.loadUrl(url);                                          // 서버에 있는 html 파일
         mWebView.setWebViewClient(new WebViewClient());                 // 웹뷰 클라이언트
         mWebView.setWebChromeClient(new WebChromeClient());             // 웹뷰 크롬 클라이언트
         mWebView.getSettings().setJavaScriptEnabled(true);              // 웹뷰에서 자바스크립트 사용 가능하게
+        mWebView.loadUrl("http://192.168.0.11:8080/ros_js.html");      // 서버에 있는 html 파일
         mWebView.setWebContentsDebuggingEnabled(true);                  // 크롬에서 웹뷰 디버깅 가능하게
         mWebView.addJavascriptInterface(new WebBridge(), "NOA");  // js에서 안드로이드 함수를 쓰기 위한 브릿지 설정 -> window.NOA.functionname();
+
+
+        // 음성합성 객체 설정
+        ttsClient = new TextToSpeechClient.Builder()
+                .setSpeechMode(TextToSpeechClient.NEWTONE_TALK_1)     // 음성합성방식
+                .setSpeechSpeed(1.0)            // 발음 속도(0.5~4.0)
+                .setSpeechVoice(TextToSpeechClient.VOICE_WOMAN_READ_CALM)  //TTS 음색 모드 설정(여성 차분한 낭독체)
+                .setListener(MainActivity.this)
+                .build();
+
 
         // 앱 켰을 때 시작
         if (state_text == null) {
             speech_text = getString(R.string.str_start);
             state_text = new String(EXPLANATION);
-            //tts.ttsClient.play(speech_text);
+            //ttsClient.play(speech_text);
         }
-
 
         // rosbridge랑 연결이 끊겼을 경우 html 다시 로드하는 버튼
         reloadbutton.setOnClickListener(new View.OnClickListener() {
@@ -131,12 +139,19 @@ public class MainActivity extends Activity {
             }
         });
 
-
         // 이전 목적
         button.setOnLongClickListener(new View.OnLongClickListener() {
 
             @Override
             public boolean onLongClick(View v) {
+
+                ttsClient = new TextToSpeechClient.Builder()
+                        .setSpeechMode(TextToSpeechClient.NEWTONE_TALK_1)     // 음성합성방식
+                        .setSpeechSpeed(1.0)            // 발음 속도(0.5~4.0)
+                        .setSpeechVoice(TextToSpeechClient.VOICE_WOMAN_READ_CALM)  //TTS 음색 모드 설정(여성 차분한 낭독체)
+                        .setListener(MainActivity.this)
+                        .build();
+
                 FileInputStream fis = null;
                 try {
                     fis = openFileInput(FILE_NAME);
@@ -153,8 +168,7 @@ public class MainActivity extends Activity {
                     prev_destination = sb.toString();
 
                     speech_text = "이전 목적지는" + prev_destination + getString(R.string.str_prevdestination);
-
-                    tts.ttsClient.play(speech_text);
+                    ttsClient.play(speech_text);
                     state_text = PREV_DESTINATION;
 
                 } catch (FileNotFoundException e) {
@@ -184,101 +198,385 @@ public class MainActivity extends Activity {
 //                mWebView.loadUrl("javascript:setflag('학교')");
 //                mWebView.loadUrl("javascript:sendmsg()");
 
-                switch (state_text) {
-                    case EXPLANATION:
-                        // 음성 합성할 문장으로 speech_text 설정
-                        speech_text = getString(R.string.str_definition);
-                        // 검색을 하기 위해 state_text 설정
-                        state_text = SEARCH;
-                        // 음성 합성
-                        tts.ttsClient.play(speech_text);
-                        break;
-                    case SEARCH:
-                        // 음성 인식 시작할 때 나타나는 토스트 메세지
-                        Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
-                        stt.client.startRecording(true);
-                        break;
-                    case REASK:
-                        // 인식한 목적지가 맞는지 확인하기
-                        speech_text = textView.getText().toString();
-                        destination = speech_text;
-                        state_text = REASK_ANSWER;
-                        tts.ttsClient.play("목적지가 " + speech_text + "입니까?");
-                        break;
-                    case REASK_ANSWER:       // 목적지 재확인 시 대답
-                        Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
-                        stt.client.startRecording(true);
-                        break;
-                    case NO_REASK:       // 목적지가 잘못 인식되었을 경우
-                        speech_text = getString(R.string.str_no);
-                        state_text = SEARCH;
-                        tts.ttsClient.play(speech_text);
-                        break;
-                    case YES_REASK:      // 목적지가 잘 인식되었을 경우
-                        speech_text = getString(R.string.str_navigate);
-                        // js의 함수 setflag() : 목적지 이름을 변수에 저장
-                        mWebView.loadUrl("javascript:setflag('" + destination + "')");
-                        // js의 함수 sendmsg() : ros로 msg를 보내기
-                        mWebView.loadUrl("javascript:sendmsg()");
+                // 음성인식 클라이언트 초기화
+                ttsClient = new TextToSpeechClient.Builder()
+                        .setSpeechMode(TextToSpeechClient.NEWTONE_TALK_1)     // 음성합성방식
+                        .setSpeechSpeed(1.0)            // 발음 속도(0.5~4.0)
+                        .setSpeechVoice(TextToSpeechClient.VOICE_WOMAN_READ_CALM)  //TTS 음색 모드 설정(여성 차분한 낭독체)
+                        .setListener(MainActivity.this)
+                        .build();
 
-                        state_text = NAVIGATE;
-                        tts.ttsClient.play(speech_text);
 
-                        FileOutputStream fos = null;
-                        try {
-                            fos = openFileOutput(FILE_NAME, MODE_PRIVATE);
-                            fos.write(destination.getBytes());
-                            textView.setText("Saved to " + getFilesDir() + "/" + FILE_NAME);
-                        } catch (FileNotFoundException e) {
-                            e.printStackTrace();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        } finally {
-                            if (fos != null) {
-                                try {
-                                    fos.close();
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
+                if (state_text.equals(EXPLANATION)) {   // 목적지 묻기
+                    // 음성 합성할 문장으로 speech_text 설정
+                    speech_text = getString(R.string.str_definition);
+                    // 검색을 하기 위해 state_text 설정
+                    state_text = SEARCH;
+                    // 음성 합성
+                    ttsClient.play(speech_text);
+
+                } else if (state_text.equals(SEARCH)) {    // 검색하기
+                    // 음성 인식을 위한 변수 빌드
+                    client = builder.build();
+
+                    // 음성 인식 시작할 때 나타나는 토스트 메세지
+                    Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
+
+                    // 음성 인식
+                    client.setSpeechRecognizeListener(MainActivity.this);
+                    client.startRecording(true);
+
+                } else if (state_text.equals(REASK)) {      // 인식한 목적지가 맞는지 확인하기
+                    speech_text = textView.getText().toString();
+                    destination = speech_text;
+                    state_text = REASK_ANSWER;
+                    ttsClient.play("목적지가 " + speech_text + "입니까?");
+
+                } else if (state_text.equals(REASK_ANSWER)) {       // 목적지 재확인 시 대답
+                    client = builder.build();
+
+                    Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
+
+                    client.setSpeechRecognizeListener(MainActivity.this);
+                    client.startRecording(true);
+
+                } else if (state_text.equals(NO_REASK)) {       // 목적지가 잘못 인식되었을 경우
+                    speech_text = getString(R.string.str_no);
+                    state_text = SEARCH;
+                    ttsClient.play(speech_text);
+
+                } else if (state_text.equals(YES_REASK)) {      // 목적지가 잘 인식되었을 경우
+                    speech_text = getString(R.string.str_navigate);
+                    // js의 함수 setflag() : 목적지 이름을 변수에 저장
+                    mWebView.loadUrl("javascript:setflag('" + destination + "')");
+                    // js의 함수 sendmsg() : ros로 msg를 보내기
+                    mWebView.loadUrl("javascript:sendmsg()");
+                    state_text = NAVIGATE;
+                    ttsClient.play(speech_text);
+
+
+                    FileOutputStream fos = null;
+                    try {
+                        fos = openFileOutput(FILE_NAME, MODE_PRIVATE);
+                        fos.write(destination.getBytes());
+                        Toast.makeText(MainActivity.this, "Saved to " + getFilesDir() + "/" + FILE_NAME, Toast.LENGTH_LONG).show();
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } finally {
+                        if (fos != null) {
+                            try {
+                                fos.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
                             }
                         }
-                        break;
-                    case NAVIGATE:       // 안내하기
-                        speech_text = getString(R.string.str_restart);
-                        state_text = RESTART;
-                        tts.ttsClient.play(speech_text);
-                        break;
-                    case RESTART:        // 목적지를 다시 설정할 경우
-                        Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
-                        stt.client.startRecording(true);
-                        break;
-                    case ARRIVAL:        // 도착했을 경우
-                        speech_text = getString(R.string.str_ask2);
-                        state_text = EXPLANATION;
-                        mWebView.loadUrl("javascript:sendmsg()");
-                        tts.ttsClient.play(speech_text);
-                    case PREV_DESTINATION:
-                        Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
-                        stt.client.startRecording(true);
-                        break;
-                    case REANSWER:
-                        speech_text = getString(R.string.str_reanswer);
-                        tts.ttsClient.play(speech_text);
-                        state_text = REANSWER_;
-                        break;
-                    case REANSWER_:
-                        Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
-                        stt.client.startRecording(true);
-                        state_text = tmp_state;
-                        break;
+                    }
+
+                } else if (state_text.equals(NAVIGATE)) {       // 안내하기
+                    speech_text = getString(R.string.str_restart);
+                    state_text = RESTART;
+                    ttsClient.play(speech_text);
+
+                } else if (state_text.equals(RESTART)) {        // 목적지를 다시 설정할 경우
+                    client = builder.build();
+
+                    Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
+
+                    client.setSpeechRecognizeListener(MainActivity.this);
+                    client.startRecording(true);
+
+                } else if (state_text.equals(ARRIVAL)) {        // 도착했을 경우
+                    speech_text = getString(R.string.str_ask2);
+                    state_text = EXPLANATION;
+                    mWebView.loadUrl("javascript:sendmsg()");
+                    ttsClient.play(speech_text);
+                } else if (state_text.equals(PREV_DESTINATION)) {
+                    client = builder.build();
+
+                    Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
+
+                    client.setSpeechRecognizeListener(MainActivity.this);
+                    client.startRecording(true);
+                } else if (state_text.equals(REANSWER)) {
+                    speech_text = getString(R.string.str_reanswer);
+                    ttsClient.play(speech_text);
+                    state_text = REANSWER_;
+                } else if (state_text.equals(REANSWER_)) {
+                    client = builder.build();
+
+                    Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
+
+                    client.setSpeechRecognizeListener(MainActivity.this);
+                    state_text = tmp_state;
                 }
             }
         });
     }
 
-    /****************************************************************************************************************/
-    /****************************************************************************************************************/
-    /****************************************************************************************************************/
+    private void handleError(int errorCode) {
+        String errorText;
+        switch (errorCode) {
+            case TextToSpeechClient.ERROR_NETWORK:
+                errorText = "네트워크 오류";
+                break;
+            case TextToSpeechClient.ERROR_NETWORK_TIMEOUT:
+                errorText = "네트워크 지연";
+                break;
+            case TextToSpeechClient.ERROR_CLIENT_INETRNAL:
+                errorText = "음성합성 클라이언트 내부 오류";
+                break;
+            case TextToSpeechClient.ERROR_SERVER_INTERNAL:
+                errorText = "음성합성 서버 내부 오류";
+                break;
+            case TextToSpeechClient.ERROR_SERVER_TIMEOUT:
+                errorText = "음성합성 서버 최대 접속시간 초과";
+                break;
+            case TextToSpeechClient.ERROR_SERVER_AUTHENTICATION:
+                errorText = "음성합성 인증 실패";
+                break;
+            case TextToSpeechClient.ERROR_SERVER_SPEECH_TEXT_BAD:
+                errorText = "음성합성 텍스트 오류";
+                break;
+            case TextToSpeechClient.ERROR_SERVER_SPEECH_TEXT_EXCESS:
+                errorText = "음성합성 텍스트 허용 길이 초과";
+                break;
+            case TextToSpeechClient.ERROR_SERVER_UNSUPPORTED_SERVICE:
+                errorText = "음성합성 서비스 모드 오류";
+                break;
+            case TextToSpeechClient.ERROR_SERVER_ALLOWED_REQUESTS_EXCESS:
+                errorText = "허용 횟수 초과";
+                break;
+            default:
+                errorText = "정의하지 않은 오류";
+                break;
+        }
+
+        final String statusMessage = errorText + " (" + errorCode + ")";
+
+        Log.i(TAG, statusMessage);
+    }
+
+    @Override
+    public void onReady() {//모든 하드웨어및 오디오 서비스가 모두 준비 된 다음 호출
+        Log.d(TAG, "모든 준비가 완료 되었습니다.");
+    }
+
+    @Override
+    public void onBeginningOfSpeech() { //사용자가 말하기 시작하는 순간 호출
+        Log.d(TAG, "말하기 시작 했습니다.");
+    }
+
+    @Override
+    public void onEndOfSpeech() {//사용자가 말하기를 끝냈다고 판단되면 호출
+        Log.d(TAG, "말하기가 끝났습니다.");
+    }
+
+    @Override
+    public void onError(int errorCode, String errorMsg) {
+
+    }
+
+    @Override
+    public void onPartialResult(String partialResult) {// 인식된 음성 데이터를 문자열로 알려 준다.
+
+    }
+
+
+    // 음성인식한 결과
+    @Override
+    public void onResults(Bundle results) {     // 음성 입력이 종료된것으로 판단하고 서버에 질의를 모두 마치고 나면 호출
+        final StringBuilder builder = new StringBuilder();
+
+        final ArrayList<String> texts = results.getStringArrayList(SpeechRecognizerClient.KEY_RECOGNITION_RESULTS);
+        ArrayList<Integer> confs = results.getIntegerArrayList(SpeechRecognizerClient.KEY_CONFIDENCE_VALUES);
+
+        Log.d(TAG, "Result: " + texts);
+
+        for (int i = 0; i < texts.size(); i++) {
+            builder.append(texts.get(i));
+            builder.append(" (");
+            builder.append(confs.get(i).intValue());
+            builder.append(")\n");
+        }
+
+        //모든 콜백함수들은 백그라운드에서 돌고 있기 때문에 메인 UI를 변경할려면 runOnUiThread를 사용해야 한다.
+        final Activity activity = this;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (activity.isFinishing()) return;
+
+                TextView textView = findViewById(R.id.tv);
+                textView.setText(texts.get(0));
+
+                if (state_text.equals(SEARCH))      // 목적지를 말할 때는 넘어감
+                    state_text = REASK;
+                else if (state_text.equals(REASK_ANSWER)) { // 목적지가 올바르게 인식되었는지 확인할 때
+                    if (textView.getText().equals("응") || textView.getText().equals("네") || textView.getText().equals("예"))
+                        state_text = YES_REASK;
+                    else if (textView.getText().equals("아니") || textView.getText().equals("아니요"))
+                        state_text = NO_REASK;
+                    else {
+                        state_text = REANSWER;
+                        tmp_state = state_text;
+                    }
+                } else if (state_text.equals(RESTART)) {    // 목적지를 다시 설정할 때
+                    if (textView.getText().equals("응") || textView.getText().equals("네") || textView.getText().equals("예"))
+                        // 맞으면 처음으로
+                        state_text = EXPLANATION;
+                    else if (textView.getText().equals("아니") || textView.getText().equals("아니요"))
+                        // 아니면 그대로
+                        state_text = NAVIGATE;
+                    else {
+                        state_text = REANSWER;
+                        tmp_state = state_text;
+                    }
+                } else if (state_text.equals(PREV_DESTINATION)) {
+                    if (textView.getText().equals("응") || textView.getText().equals("네") || textView.getText().equals("예")) {
+                        state_text = NAVIGATE;
+                        destination = prev_destination;
+                    } else if (textView.getText().equals("아니") || textView.getText().equals("아니요"))
+                        state_text = EXPLANATION;
+                    else {
+                        state_text = REANSWER;
+                        tmp_state = state_text;
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onAudioLevel(float audioLevel) {
+
+    }
+
+    @Override
+    public void onFinished() {
+        int intSentSize = ttsClient.getSentDataSize();
+        int intRecvSize = ttsClient.getReceivedDataSize();
+
+        final String strInacctiveText = "onFinished() SentSize : " + intSentSize + " RecvSize : " + intRecvSize;
+
+        Log.i(TAG, strInacctiveText);
+
+        ttsClient = null;
+    }
+
+    // 자바스크립트에서 안드로이드 함수 호출할 때 사용
+    // 자바스크립트 코드 : window.NOA.함수이름()
+    class WebBridge {
+        @JavascriptInterface
+        public void SuccessArrival() {  // 목적지에 도착할 경우 실행
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    TextView textView = findViewById(R.id.tv);
+                    textView.setText("Success Arrival");
+
+                    state_text = ARRIVAL;
+                    ttsClient = new TextToSpeechClient.Builder()
+                            .setSpeechMode(TextToSpeechClient.NEWTONE_TALK_1)     // 음성합성방식
+                            .setSpeechSpeed(1.0)            // 발음 속도(0.5~4.0)
+                            .setSpeechVoice(TextToSpeechClient.VOICE_WOMAN_READ_CALM)  //TTS 음색 모드 설정(여성 차분한 낭독체)
+                            .setListener(MainActivity.this)
+                            .build();
+
+                    // 다시 처음으로
+                    speech_text = getString(R.string.str_arrival);
+                    state_text = EXPLANATION;
+                    ttsClient.play(speech_text);
+
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void thereIsStairs() {       // 계단 인식할 경우 실행
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    TextView textView = findViewById(R.id.tv);
+                    textView.setText("There are Stairs");
+
+                    ttsClient = new TextToSpeechClient.Builder()
+                            .setSpeechMode(TextToSpeechClient.NEWTONE_TALK_1)     // 음성합성방식
+                            .setSpeechSpeed(1.0)            // 발음 속도(0.5~4.0)
+                            .setSpeechVoice(TextToSpeechClient.VOICE_WOMAN_READ_CALM)  //TTS 음색 모드 설정(여성 차분한 낭독체)
+                            .setListener(MainActivity.this)
+                            .build();
+
+                    speech_text = getString(R.string.str_stairs);
+                    ttsClient.play(speech_text);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void BlueNumber(final int number) {       // 계단 인식할 경우 실행
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    TextView textView = findViewById(R.id.tv);
+                    textView.setText("BlueLight");
+
+                    ttsClient = new TextToSpeechClient.Builder()
+                            .setSpeechMode(TextToSpeechClient.NEWTONE_TALK_1)     // 음성합성방식
+                            .setSpeechSpeed(1.0)            // 발음 속도(0.5~4.0)
+                            .setSpeechVoice(TextToSpeechClient.VOICE_WOMAN_READ_CALM)  //TTS 음색 모드 설정(여성 차분한 낭독체)
+                            .setListener(MainActivity.this)
+                            .build();
+
+                    speech_text = Integer.toString(number);
+                    ttsClient.play(speech_text);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void BlueLightOn() {       // 계단 인식할 경우 실행
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    TextView textView = findViewById(R.id.tv);
+                    textView.setText("BlueLight");
+
+                    ttsClient = new TextToSpeechClient.Builder()
+                            .setSpeechMode(TextToSpeechClient.NEWTONE_TALK_1)     // 음성합성방식
+                            .setSpeechSpeed(1.0)            // 발음 속도(0.5~4.0)
+                            .setSpeechVoice(TextToSpeechClient.VOICE_WOMAN_READ_CALM)  //TTS 음색 모드 설정(여성 차분한 낭독체)
+                            .setListener(MainActivity.this)
+                            .build();
+
+                    speech_text = getString(R.string.str_bluelight);
+                    ttsClient.play(speech_text);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void RedLightisOn() {       // 계단 인식할 경우 실행
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    TextView textView = findViewById(R.id.tv);
+                    textView.setText("RedLight");
+
+                    ttsClient = new TextToSpeechClient.Builder()
+                            .setSpeechMode(TextToSpeechClient.NEWTONE_TALK_1)     // 음성합성방식
+                            .setSpeechSpeed(1.0)            // 발음 속도(0.5~4.0)
+                            .setSpeechVoice(TextToSpeechClient.VOICE_WOMAN_READ_CALM)  //TTS 음색 모드 설정(여성 차분한 낭독체)
+                            .setListener(MainActivity.this)
+                            .build();
+
+                    speech_text = getString(R.string.str_redlight);
+                    ttsClient.play(speech_text);
+                }
+            });
+        }
+    }
 
     //뒤로가기 2번하면 앱종료
     @Override
@@ -299,310 +597,6 @@ public class MainActivity extends Activity {
         finish();
         System.exit(0);
         android.os.Process.killProcess(android.os.Process.myPid());
-    }
-
-
-    /****************************************************************************************************************/
-    /****************************************************************************************************************/
-    /****************************************************************************************************************/
-
-    // 자바스크립트에서 안드로이드 함수 호출할 때 사용
-    // 자바스크립트 코드 : window.NOA.함수이름()
-    class WebBridge {
-        @JavascriptInterface
-        public void SuccessArrival() {  // 목적지에 도착할 경우 실행
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    TextView textView = findViewById(R.id.tv);
-                    textView.setText("Success Arrival");
-
-                    state_text = ARRIVAL;
-
-                    // 다시 처음으로
-                    speech_text = getString(R.string.str_arrival);
-                    state_text = EXPLANATION;
-                    tts.ttsClient.play(speech_text);
-
-                }
-            });
-        }
-
-        @JavascriptInterface
-        public void thereIsStairs() {       // 계단 인식할 경우 실행
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    TextView textView = findViewById(R.id.tv);
-                    textView.setText("There are Stairs");
-
-                    speech_text = getString(R.string.str_stairs);
-                    tts.ttsClient.play(speech_text);
-                }
-            });
-        }
-
-        @JavascriptInterface
-        public void BlueNumber(final int number) {       // 계단 인식할 경우 실행
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    TextView textView = findViewById(R.id.tv);
-                    textView.setText("BlueLight");
-
-                    speech_text = Integer.toString(number);
-                    tts.ttsClient.play(speech_text);
-                }
-            });
-        }
-
-        @JavascriptInterface
-        public void BlueLightOn() {       // 계단 인식할 경우 실행
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    TextView textView = findViewById(R.id.tv);
-                    textView.setText("BlueLight");
-
-                    speech_text = getString(R.string.str_bluelight);
-                    tts.ttsClient.play(speech_text);
-                }
-            });
-        }
-
-        @JavascriptInterface
-        public void RedLightisOn() {       // 계단 인식할 경우 실행
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    TextView textView = findViewById(R.id.tv);
-                    textView.setText("RedLight");
-
-                    speech_text = getString(R.string.str_redlight);
-                    tts.ttsClient.play(speech_text);
-                }
-            });
-        }
-
-        @JavascriptInterface
-        public void reload() {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    mWebView.reload();
-                }
-            });
-        }
-    }
-
-    /****************************************************************************************************************/
-    /****************************************************************************************************************/
-    /****************************************************************************************************************/
-
-    class TTS extends Activity implements TextToSpeechListener {
-        protected TextToSpeechClient ttsClient;
-        private static final String TAG = "TTS";
-
-        public TTS() {
-            ttsClient = new TextToSpeechClient.Builder()
-                    .setSpeechMode(TextToSpeechClient.NEWTONE_TALK_1)     // 음성합성방식
-                    .setSpeechSpeed(1.0)            // 발음 속도(0.5~4.0)
-                    .setSpeechVoice(TextToSpeechClient.VOICE_WOMAN_READ_CALM)  //TTS 음색 모드 설정(여성 차분한 낭독체)
-                    .setListener(this)
-                    .build();
-        }
-
-        @Override
-        public void onFinished() { //음성합성이 종료될 때 호출된다.
-            int intSentSize = ttsClient.getSentDataSize();      //세션 중에 전송한 데이터 사이즈
-            int intRecvSize = ttsClient.getReceivedDataSize();  //세션 중에 전송받은 데이터 사이즈
-
-            final String strInacctiveText = "handleFinished() SentSize : " + intSentSize + "  RecvSize : " + intRecvSize;
-
-            Log.i(TAG, strInacctiveText);
-            vibrator.vibrate(300);
-        }
-
-        // 더 이상 쓰지 않는 경우에는 다음과 같이 해제
-        @Override
-        public void onDestroy() {
-            super.onDestroy();
-            TextToSpeechManager.getInstance().finalizeLibrary();
-        }
-
-        @Override
-        public void onError(int code, String message) { // 에러처리
-            handleError(code);
-        }
-
-        private void handleError(int errorCode) {
-            String errorText;
-            switch (errorCode) {
-                case TextToSpeechClient.ERROR_NETWORK:
-                    errorText = "네트워크 오류";
-                    break;
-                case TextToSpeechClient.ERROR_NETWORK_TIMEOUT:
-                    errorText = "네트워크 지연";
-                    break;
-                case TextToSpeechClient.ERROR_CLIENT_INETRNAL:
-                    errorText = "음성합성 클라이언트 내부 오류";
-                    break;
-                case TextToSpeechClient.ERROR_SERVER_INTERNAL:
-                    errorText = "음성합성 서버 내부 오류";
-                    break;
-                case TextToSpeechClient.ERROR_SERVER_TIMEOUT:
-                    errorText = "음성합성 서버 최대 접속시간 초과";
-                    break;
-                case TextToSpeechClient.ERROR_SERVER_AUTHENTICATION:
-                    errorText = "음성합성 인증 실패";
-                    break;
-                case TextToSpeechClient.ERROR_SERVER_SPEECH_TEXT_BAD:
-                    errorText = "음성합성 텍스트 오류";
-                    break;
-                case TextToSpeechClient.ERROR_SERVER_SPEECH_TEXT_EXCESS:
-                    errorText = "음성합성 텍스트 허용 길이 초과";
-                    break;
-                case TextToSpeechClient.ERROR_SERVER_UNSUPPORTED_SERVICE:
-                    errorText = "음성합성 서비스 모드 오류";
-                    break;
-                case TextToSpeechClient.ERROR_SERVER_ALLOWED_REQUESTS_EXCESS:
-                    errorText = "허용 횟수 초과";
-                    break;
-                default:
-                    errorText = "정의하지 않은 오류";
-                    break;
-            }
-            final String statusMessage = errorText + " (" + errorCode + ")";
-            Log.i(TAG, statusMessage);
-        }
-    }
-
-
-    /****************************************************************************************************************/
-    /****************************************************************************************************************/
-    /****************************************************************************************************************/
-
-
-    class STT extends Activity implements SpeechRecognizeListener {
-        protected SpeechRecognizerClient client;
-        protected SpeechRecognizerClient.Builder builder;
-        private static final String TAG = "STT";
-
-
-        public STT() {
-            // 클라이언트 생성
-            builder = new SpeechRecognizerClient.Builder().setServiceType(SpeechRecognizerClient.SERVICE_TYPE_WEB);
-            client = builder.build();
-
-            client.setSpeechRecognizeListener(this);
-        }
-
-        // 음성인식한 결과
-        @Override
-        public void onResults(Bundle results) {     // 음성 입력이 종료된것으로 판단하고 서버에 질의를 모두 마치고 나면 호출
-            final StringBuilder builder = new StringBuilder();
-
-            final ArrayList<String> texts = results.getStringArrayList(SpeechRecognizerClient.KEY_RECOGNITION_RESULTS);
-            ArrayList<Integer> confs = results.getIntegerArrayList(SpeechRecognizerClient.KEY_CONFIDENCE_VALUES);
-
-            Log.d(TAG, "Result: " + texts);
-
-            for (int i = 0; i < texts.size(); i++) {
-                builder.append(texts.get(i));
-                builder.append(" (");
-                builder.append(confs.get(i).intValue());
-                builder.append(")\n");
-            }
-
-            //모든 콜백함수들은 백그라운드에서 돌고 있기 때문에 메인 UI를 변경할려면 runOnUiThread를 사용해야 한다.
-            final Activity activity = this;
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    if (activity.isFinishing()) return;
-
-                    textView.setText(texts.get(0));
-
-                    if (state_text.equals(SEARCH)) {    // 목적지를 말할 때는 넘어감
-                        state_text = REASK;
-                        return;
-                    }
-
-                    if (textView.getText().equals("응") || textView.getText().equals("네") || textView.getText().equals("예")) {
-                        switch (state_text){
-                            case REASK_ANSWER:
-                                state_text = YES_REASK;
-                                break;
-                            case RESTART:
-                                state_text = EXPLANATION;
-                                break;
-                            case PREV_DESTINATION:
-                                state_text = YES_REASK;
-                                destination = prev_destination;
-                                break;
-                        }
-                    }
-                    else if (textView.getText().equals("아니") || textView.getText().equals("아니요")){
-                        switch (state_text){
-                            case REASK_ANSWER:
-                                state_text = NO_REASK;
-                                break;
-                            case RESTART:
-                                state_text = NAVIGATE;
-                                break;
-                            case PREV_DESTINATION:
-                                state_text = EXPLANATION;
-                                break;
-                        }
-                    }
-                    else {
-                        state_text = REANSWER;
-                        tmp_state = state_text;
-                    }
-                }
-            });
-        }
-
-        @Override
-        public void onAudioLevel(float audioLevel) {
-
-        }
-
-        @Override
-        public void onDestroy() {
-            super.onDestroy();
-            SpeechRecognizerManager.getInstance().finalizeLibrary();
-        }
-
-        @Override
-        public void onReady() {//모든 하드웨어및 오디오 서비스가 모두 준비 된 다음 호출
-            Log.d(TAG, "모든 준비가 완료 되었습니다.");
-        }
-
-        @Override
-        public void onBeginningOfSpeech() { //사용자가 말하기 시작하는 순간 호출
-            Log.d(TAG, "말하기 시작 했습니다.");
-        }
-
-        @Override
-        public void onEndOfSpeech() {//사용자가 말하기를 끝냈다고 판단되면 호출
-            Log.d(TAG, "말하기가 끝났습니다.");
-        }
-
-        @Override
-        public void onError(int errorCode, String errorMsg) {
-
-        }
-
-        @Override
-        public void onPartialResult(String partialResult) {// 인식된 음성 데이터를 문자열로 알려 준다.
-
-        }
-
-        @Override
-        public void onFinished() {
-            vibrator.vibrate(300);
-        }
     }
 
 }
