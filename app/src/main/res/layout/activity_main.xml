@@ -30,24 +30,6 @@
             android:layout_margin="2dp"/>
     </LinearLayout>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="50dp">
-        android:orientation="horizontal"
-        <EditText
-            android:id="@+id/text_ros"
-            android:layout_width="60sp"
-            android:layout_height="match_parent"
-            android:text="9091"
-            android:layout_margin="2dp"/>
-        <Button
-            android:id="@+id/bt_ros"
-            android:layout_width="50sp"
-            android:layout_height="match_parent"
-            android:text="확인"
-            android:layout_margin="2dp"/>
-    </LinearLayout>
-
     <TextView
         android:id="@+id/tv"
         android:layout_width="wrap_content"
@@ -73,10 +55,9 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_gravity="center"
-        android:src="@drawable/noa_background"
         android:background="#00ff0000"
-        android:scaleType="fitCenter"
-        android:text="CLICK"/>
+        android:src="@drawable/noa_background"
+        android:scaleType="fitCenter"/>
 
 
 </LinearLayout>
