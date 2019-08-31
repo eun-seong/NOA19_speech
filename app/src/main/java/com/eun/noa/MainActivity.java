@@ -41,9 +41,9 @@ public class MainActivity extends Activity {
     private static final int REQUEST_CODE_AUDIO_AND_WRITE_EXTERNAL_STORAGE = 0;
     private static final String TAG = "MainActivity";   // 로그에 사용
     private static final String FILE_NAME = "destination.txt";
-    private static String url = "http://192.168.1.187:8080/" + "ros_js.html";
+    private static String url = "http://192.168.0.11:8080/" + "ros_js.html";
     private static final int VIBRATESECONDS = 200;
-    private static final int AMPLITUDE = 10;
+    private static final int AMPLITUDE = 30;
 
     // 음성 안내 순서를 알기 위한 string 변수
     // "_"는 "예/아니요"로 하는 음성 인식
@@ -122,7 +122,7 @@ public class MainActivity extends Activity {
         if (state_text == null) {
             speech_text = getString(R.string.str_start);
             state_text = new String(EXPLANATION);
-            //tts.ttsClient.play(speech_text);
+            tts.ttsClient.play(speech_text);
         }
 
         // rosbridge랑 연결이 끊겼을 경우 html 다시 로드하는 버튼
@@ -321,6 +321,7 @@ public class MainActivity extends Activity {
                 public void run() {
                     TextView textView = findViewById(R.id.tv);
                     textView.setText("Success Arrival");
+                    button.setEnabled(false);
 
                     state_text = ARRIVAL;
 
@@ -340,50 +341,62 @@ public class MainActivity extends Activity {
                     TextView textView = findViewById(R.id.tv);
                     textView.setText("There are Stairs");
 
-                    speech_text = getString(R.string.str_stairs);
-                    tts.ttsClient.play(speech_text);
+                    if (!tts.ttsClient.isPlaying()) {
+                        button.setEnabled(false);
+                        speech_text = getString(R.string.str_stairs);
+                        tts.ttsClient.play(speech_text);
+                    }
                 }
             });
         }
 
         @JavascriptInterface
-        public void BlueNumber(final int number) {       // 계단 인식할 경우 실행
+        public void BlueNumber(final int number) {       // 신호등 숫자
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    TextView textView = findViewById(R.id.tv);
+                    textView.setText("BlueNumber");
+
+                    if (!tts.ttsClient.isPlaying()) {
+                        speech_text = Integer.toString(number);
+                        button.setEnabled(false);
+                        tts.ttsClient.play(speech_text);
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void BlueLightOn() {       // 신호등 초록불
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     TextView textView = findViewById(R.id.tv);
                     textView.setText("BlueLight");
 
-                    speech_text = Integer.toString(number);
-                    tts.ttsClient.play(speech_text);
+                    if (!tts.ttsClient.isPlaying()) {
+                        button.setEnabled(false);
+                        speech_text = getString(R.string.str_bluelight);
+                        tts.ttsClient.play(speech_text);
+                    }
                 }
             });
         }
 
         @JavascriptInterface
-        public void BlueLightOn() {       // 계단 인식할 경우 실행
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    TextView textView = findViewById(R.id.tv);
-                    textView.setText("BlueLight");
-
-                    speech_text = getString(R.string.str_bluelight);
-                    tts.ttsClient.play(speech_text);
-                }
-            });
-        }
-
-        @JavascriptInterface
-        public void RedLightisOn() {       // 계단 인식할 경우 실행
+        public void RedLightisOn() {       // 신호등 빨간불
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     TextView textView = findViewById(R.id.tv);
                     textView.setText("RedLight");
 
-                    speech_text = getString(R.string.str_redlight);
-                    tts.ttsClient.play(speech_text);
+                    if (!tts.ttsClient.isPlaying()) {
+                        button.setEnabled(false);
+                        speech_text = getString(R.string.str_redlight);
+                        tts.ttsClient.play(speech_text);
+                    }
                 }
             });
         }
