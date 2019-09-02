@@ -39,11 +39,11 @@ import java.util.ArrayList;
 
 public class MainActivity extends Activity {
     private static final int REQUEST_CODE_AUDIO_AND_WRITE_EXTERNAL_STORAGE = 0;
-    private static final String TAG = "MainActivity";   // 로그에 사용
-    private static final String FILE_NAME = "destination.txt";
-    private static String url = "http://192.168.0.11:8080/" + "ros_js.html";
     private static final int VIBRATESECONDS = 200;
     private static final int AMPLITUDE = 30;
+    private static final String TAG = "MainActivity";   // 로그에 사용
+    private static final String FILE_NAME = "destination.txt";
+    private static String url = "http://192.168.1.187" + ":8080/ros_js.html";
 
     // 음성 안내 순서를 알기 위한 string 변수
     // "_"는 "예/아니요"로 하는 음성 인식
@@ -56,9 +56,10 @@ public class MainActivity extends Activity {
     private static final String REASK_NO = "NO";
     private static final String ARRIVAL = "ARRIVAL";
     private static final String PREV_DESTINATION_ = "PREV_DESTINATION_";
-    private static final String REANSWER = "REANSWER";
-    private static final String REANSWER_ = "REANSWER_";
+    private static final String RERECORD = "RERECORD";
+    private static final String RERECORD_ = "RERECORD_";
     private static final String RESTART_ = "RESTART_";
+
 
     // 레이아웃 변수
     private ImageButton button;
@@ -66,19 +67,18 @@ public class MainActivity extends Activity {
     private WebView mWebView;
     private Button reloadbutton;
     private Vibrator vibrator;
-    private EditText eText_url;
-    private EditText eText_server;
-    private Button submit_server;
 
-    private long backKeyPressedTime;                    // 앱종료 위한 백버튼 누른시간
-    private String speech_text;                         // 음성인식한 단어 저장
-    private String state_text = null;                   // 음성 안내 상태 저장 변수 -> 밑의 변수랑 같이 이용
-    private String destination;
-    private String prev_destination;
-    private String tmp_state;
+    private static boolean flag_trafficNumber = false;
+    private static boolean TRAFFIC_BLUE = false;
+    private static long backKeyPressedTime;                    // 앱종료 위한 백버튼 누른시간
+    private static String speech_text;                         // 음성인식한 단어 저장
+    private static String state_text = null;                   // 음성 안내 상태 저장 변수 -> 밑의 변수랑 같이 이용
+    private static String destination;
+    private static String prev_destination;
+    private static String prev_state;
 
-    private TTS tts;
-    private STT stt;
+    private static TTS tts;
+    private static STT stt;
 
 
     @Override
@@ -95,12 +95,9 @@ public class MainActivity extends Activity {
         // 레이아웃 변수 설정
         mWebView = (WebView) findViewById(R.id.webView);
         button = findViewById(R.id.bt);
-        submit_server = findViewById(R.id.bt_server);
         reloadbutton = findViewById(R.id.bt_reload);
         textView = findViewById(R.id.tv);
         vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-        eText_url = findViewById(R.id.text_url);
-        eText_server = findViewById(R.id.text_server);
 
         // 웹뷰 설정
         mWebView.loadUrl(url);                                          // 서버에 있는 html 파일
@@ -122,7 +119,7 @@ public class MainActivity extends Activity {
         if (state_text == null) {
             speech_text = getString(R.string.str_start);
             state_text = new String(EXPLANATION);
-            tts.ttsClient.play(speech_text);
+            //tts.ttsClient.play(speech_text);
         }
 
         // rosbridge랑 연결이 끊겼을 경우 html 다시 로드하는 버튼
@@ -130,14 +127,6 @@ public class MainActivity extends Activity {
             @Override
             public void onClick(View v) {
                 mWebView.reload();
-            }
-        });
-
-        submit_server.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                url = "http://" + eText_url.getText() + ":" + eText_server.getText() + "/ros_js.html";
-                mWebView.loadUrl(url);
             }
         });
 
@@ -163,7 +152,7 @@ public class MainActivity extends Activity {
                     textView.setText(sb.toString());
                     prev_destination = sb.toString();
 
-                    speech_text = "이전 목적지는" + prev_destination + getString(R.string.str_prevdestination);
+                    speech_text = "이전 목적지는" + prev_destination + getString(R.string.str_prev_destination);
                     tts.ttsClient.play(speech_text);
                     state_text = PREV_DESTINATION_;
 
@@ -188,10 +177,6 @@ public class MainActivity extends Activity {
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
-//                mWebView.loadUrl("javascript:setflag('학교')");
-//                mWebView.loadUrl("javascript:sendmsg()");
-
                 button.setEnabled(false);
 
                 switch (state_text) {
@@ -221,12 +206,10 @@ public class MainActivity extends Activity {
                         tts.ttsClient.play(speech_text);
                         break;
                     case REASK_YES:                     // 목적지가 잘 인식되었을 경우
-                        mWebView.loadUrl("javascript:setflag('" + destination + "')");// js의 함수 setflag() : 목적지 이름을 변수에 저장
-                        mWebView.loadUrl("javascript:sendmsg()");// js의 함수 sendmsg() : ros로 msg를 보내기
-
                         state_text = NAVIGATE;
                         speech_text = getString(R.string.str_navigate);
                         tts.ttsClient.play(speech_text);
+                        mWebView.loadUrl("javascript:setflag('" + destination + "')");// js의 함수 setflag() : 목적지 이름을 변수에 저장
 
                         FileOutputStream fos = null;
                         try {
@@ -258,20 +241,20 @@ public class MainActivity extends Activity {
                         break;
                     case ARRIVAL:                   // 도착했을 경우
                         state_text = EXPLANATION;
-                        speech_text = getString(R.string.str_ask2);
+                        speech_text = getString(R.string.str_arrival);
                         tts.ttsClient.play(speech_text);
                         break;
                     case PREV_DESTINATION_:              // 이전 목적지로 갈 것인지에 대한 대답
                         Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
                         stt.client.startRecording(true);
                         break;
-                    case REANSWER:                      // 예/아니오 외에 다른 대답이 나올 경우
-                        state_text = REANSWER_;
+                    case RERECORD:                      // 예/아니오 외에 다른 대답이 나올 경우
+                        state_text = RERECORD_;
                         speech_text = getString(R.string.str_reanswer);
                         tts.ttsClient.play(speech_text);
                         break;
-                    case REANSWER_:                     // REANSWER에 대한 대답
-                        state_text = tmp_state;
+                    case RERECORD_:                     // REANSWER에 대한 대답
+                        state_text = prev_state;
                         Toast.makeText(MainActivity.this, "음성인식을 시작합니다.", Toast.LENGTH_SHORT).show();
                         stt.client.startRecording(true);
                         break;
@@ -322,7 +305,6 @@ public class MainActivity extends Activity {
                     TextView textView = findViewById(R.id.tv);
                     textView.setText("Success Arrival");
                     button.setEnabled(false);
-
                     state_text = ARRIVAL;
 
                     // 다시 처음으로
@@ -358,7 +340,13 @@ public class MainActivity extends Activity {
                     TextView textView = findViewById(R.id.tv);
                     textView.setText("BlueNumber");
 
-                    if (!tts.ttsClient.isPlaying()) {
+                    if (!flag_trafficNumber) {
+                        flag_trafficNumber = true;
+                        button.setEnabled(false);
+                        speech_text = getString(R.string.str_redlight);
+                        tts.ttsClient.play(speech_text);
+
+                    } else if (!tts.ttsClient.isPlaying()) {
                         speech_text = Integer.toString(number);
                         button.setEnabled(false);
                         tts.ttsClient.play(speech_text);
@@ -374,6 +362,7 @@ public class MainActivity extends Activity {
                 public void run() {
                     TextView textView = findViewById(R.id.tv);
                     textView.setText("BlueLight");
+                    TRAFFIC_BLUE = true;
 
                     if (!tts.ttsClient.isPlaying()) {
                         button.setEnabled(false);
@@ -392,13 +381,19 @@ public class MainActivity extends Activity {
                     TextView textView = findViewById(R.id.tv);
                     textView.setText("RedLight");
 
-                    if (!tts.ttsClient.isPlaying()) {
+                    if (!(tts.ttsClient.isPlaying() || flag_trafficNumber)) {
+                        flag_trafficNumber = false;
                         button.setEnabled(false);
                         speech_text = getString(R.string.str_redlight);
                         tts.ttsClient.play(speech_text);
                     }
                 }
             });
+        }
+
+        @JavascriptInterface
+        public String getState() {
+            return state_text;
         }
     }
 
@@ -475,8 +470,8 @@ public class MainActivity extends Activity {
                                 break;
                         }
                     } else {
-                        state_text = REANSWER;
-                        tmp_state = state_text;
+                        prev_state = state_text;
+                        state_text = RERECORD;
                     }
                 }
             });
@@ -516,7 +511,58 @@ public class MainActivity extends Activity {
 
         @Override
         public void onError(int errorCode, String errorMsg) {
+            String errorText = null;
+            switch (errorCode) {
+                case SpeechRecognizerClient.ERROR_AUDIO_FAIL:
+                    errorText = "마이크 접근 불가";
+                    break;
+                case SpeechRecognizerClient.ERROR_AUTH_FAIL:
+                    errorText = "apikey 인증 실패";
+                    break;
+                case SpeechRecognizerClient.ERROR_CLIENT:
+                    errorText = "클라이언트 내부 로직 오류";
+                    break;
+                case SpeechRecognizerClient.ERROR_NETWORK_FAIL:
+                    errorText = "네트워크 오류";
+                    break;
+                case SpeechRecognizerClient.ERROR_NETWORK_TIMEOUT:
+                    errorText = "네트워크 타임아웃";
+                    break;
+                case SpeechRecognizerClient.ERROR_NO_RESULT:
+                    errorText = "인식된 결과가 없음";
+                    break;
+                case SpeechRecognizerClient.ERROR_RECOGNITION_TIMEOUT:
+                    errorText = "전체 소요시간 타임아웃";
+                    break;
+                case SpeechRecognizerClient.ERROR_SERVER_ALLOWED_REQUESTS_EXCESS:
+                    errorText = "요청 허용 횟수 초과";
+                    break;
+                case SpeechRecognizerClient.ERROR_SERVER_FAIL:
+                    errorText = "서버 오류 발생";
+                    break;
+                case SpeechRecognizerClient.ERROR_SERVER_TIMEOUT:
+                    errorText = "서버 응답 시간 초과";
+                    break;
+                case SpeechRecognizerClient.ERROR_SERVER_UNSUPPORT_SERVICE:
+                    errorText = "제공되지 않는 서비스 타입";
+                    break;
+                case SpeechRecognizerClient.ERROR_SERVER_USERDICT_EMPTY:
+                    errorText = "입력된 사용자 사전에 내용이 없음";
+                    break;
+            }
+            final String statusMessage = errorText + " (" + errorCode + ")";
+            Log.i(TAG, statusMessage);
 
+
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    button.setEnabled(true);
+                    prev_state = state_text;
+                    state_text = RERECORD;
+                    vibrator.vibrate(VibrationEffect.createOneShot(VIBRATESECONDS, AMPLITUDE));
+                }
+            });
         }
 
         @Override
@@ -560,9 +606,15 @@ public class MainActivity extends Activity {
                 @Override
                 public void run() {
                     button.setEnabled(true);
+                    vibrator.vibrate(VibrationEffect.createOneShot(VIBRATESECONDS, AMPLITUDE));
+
+                    if (state_text == NAVIGATE && TRAFFIC_BLUE) {
+                        mWebView.loadUrl("javascript:sendmsg()");// js의 함수 sendmsg() : ros로 msg를 보내기
+                        TRAFFIC_BLUE = false;
+                    }
                 }
             });
-            vibrator.vibrate(VibrationEffect.createOneShot(VIBRATESECONDS, AMPLITUDE));
+
         }
 
         // 더 이상 쓰지 않는 경우에는 다음과 같이 해제
