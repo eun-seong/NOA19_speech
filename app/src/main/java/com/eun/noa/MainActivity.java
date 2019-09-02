@@ -43,7 +43,7 @@ public class MainActivity extends Activity {
     private static final int AMPLITUDE = 30;
     private static final String TAG = "MainActivity";   // 로그에 사용
     private static final String FILE_NAME = "destination.txt";
-    private static String url = "http://192.168.1.187" + ":8080/ros_js.html";
+    private static final String url = "http://192.168.1.187" + ":8080/ros_js.html";
 
     // 음성 안내 순서를 알기 위한 string 변수
     // "_"는 "예/아니요"로 하는 음성 인식
@@ -60,14 +60,6 @@ public class MainActivity extends Activity {
     private static final String RERECORD_ = "RERECORD_";
     private static final String RESTART_ = "RESTART_";
 
-
-    // 레이아웃 변수
-    private ImageButton button;
-    private TextView textView;
-    private WebView mWebView;
-    private Button reloadbutton;
-    private Vibrator vibrator;
-
     private static boolean flag_trafficNumber = false;
     private static boolean TRAFFIC_BLUE = false;
     private static long backKeyPressedTime;                    // 앱종료 위한 백버튼 누른시간
@@ -76,6 +68,13 @@ public class MainActivity extends Activity {
     private static String destination;
     private static String prev_destination;
     private static String prev_state;
+
+    // 레이아웃 변수
+    private static ImageButton button;
+    private static TextView textView;
+    private static WebView mWebView;
+    private static Button reloadbutton;
+    private static Vibrator vibrator;
 
     private static TTS tts;
     private static STT stt;
