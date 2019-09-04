@@ -44,7 +44,7 @@ public class MainActivity extends Activity {
     private static final int AMPLITUDE = 30;
     private static final String TAG = "MainActivity";   // 로그에 사용
     private static final String FILE_NAME = "destination.txt";
-    private static final String url = "http://192.168.0.11" + ":8080/ros_js.html";
+    private static final String url = "http://192.168.1.187" + ":8080/ros_js.html";
 
     // 음성 안내 순서를 알기 위한 string 변수
     // "_"는 "예/아니요"로 하는 음성 인식
