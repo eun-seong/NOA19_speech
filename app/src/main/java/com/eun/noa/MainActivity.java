@@ -44,7 +44,7 @@ public class MainActivity extends Activity {
     private static final int AMPLITUDE = 30;
     private static final String TAG = "MainActivity";   // 로그에 사용
     private static final String FILE_NAME = "destination.txt";
-    private static final String url = "http://192.168.0.172" + ":8080/ros_js.html";
+    private static final String url = "http://192.168.1.8" + ":8080/ros_js.html";
 
     // 음성 안내 순서를 알기 위한 string 변수
     // "_"는 "예/아니요"로 하는 음성 인식
@@ -147,7 +147,7 @@ public class MainActivity extends Activity {
                 try {
                     fos = openFileOutput(FILE_NAME, MODE_PRIVATE);
                     fos.write(destination.getBytes());
-                    textView.setText("Saved to " + getFilesDir() + "/" + FILE_NAME);
+                    textView.setText(destination);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 } catch (IOException e) {
@@ -167,7 +167,7 @@ public class MainActivity extends Activity {
         bt_osaka.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                destination = "오사카 브루스";
+                destination = "술집";
                 state_text = NAVIGATE;
                 speech_text = getString(R.string.str_navigate);
                 tts.ttsClient.play(speech_text);
@@ -177,7 +177,7 @@ public class MainActivity extends Activity {
                 try {
                     fos = openFileOutput(FILE_NAME, MODE_PRIVATE);
                     fos.write(destination.getBytes());
-                    textView.setText("Saved to " + getFilesDir() + "/" + FILE_NAME);
+                    textView.setText(destination);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 } catch (IOException e) {
@@ -197,7 +197,7 @@ public class MainActivity extends Activity {
         bt_chicken.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                destination = "고수 찜닭";
+                destination = "식당";
                 state_text = NAVIGATE;
                 speech_text = getString(R.string.str_navigate);
                 tts.ttsClient.play(speech_text);
@@ -207,7 +207,7 @@ public class MainActivity extends Activity {
                 try {
                     fos = openFileOutput(FILE_NAME, MODE_PRIVATE);
                     fos.write(destination.getBytes());
-                    textView.setText("Saved to " + getFilesDir() + "/" + FILE_NAME);
+                    textView.setText(destination);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 } catch (IOException e) {
@@ -238,7 +238,7 @@ public class MainActivity extends Activity {
                 try {
                     fos = openFileOutput(FILE_NAME, MODE_PRIVATE);
                     fos.write(destination.getBytes());
-                    textView.setText("Saved to " + getFilesDir() + "/" + FILE_NAME);
+                    textView.setText(destination);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 } catch (IOException e) {
@@ -259,7 +259,7 @@ public class MainActivity extends Activity {
         bt_cu.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                destination = "cu";
+                destination = "편의점";
                 state_text = NAVIGATE;
                 speech_text = getString(R.string.str_navigate);
                 tts.ttsClient.play(speech_text);
@@ -269,7 +269,7 @@ public class MainActivity extends Activity {
                 try {
                     fos = openFileOutput(FILE_NAME, MODE_PRIVATE);
                     fos.write(destination.getBytes());
-                    textView.setText("Saved to " + getFilesDir() + "/" + FILE_NAME);
+                    textView.setText(destination);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 } catch (IOException e) {
@@ -290,7 +290,7 @@ public class MainActivity extends Activity {
         bt_lalavla.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                destination = "랄라 블라";
+                destination = "가게";
                 state_text = NAVIGATE;
                 speech_text = getString(R.string.str_navigate);
                 tts.ttsClient.play(speech_text);
@@ -300,7 +300,7 @@ public class MainActivity extends Activity {
                 try {
                     fos = openFileOutput(FILE_NAME, MODE_PRIVATE);
                     fos.write(destination.getBytes());
-                    textView.setText("Saved to " + getFilesDir() + "/" + FILE_NAME);
+                    textView.setText(destination);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 } catch (IOException e) {
@@ -321,7 +321,7 @@ public class MainActivity extends Activity {
         bt_superstar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                destination = "superstar";
+                destination = "노래방";
                 state_text = NAVIGATE;
                 speech_text = getString(R.string.str_navigate);
                 tts.ttsClient.play(speech_text);
@@ -331,7 +331,7 @@ public class MainActivity extends Activity {
                 try {
                     fos = openFileOutput(FILE_NAME, MODE_PRIVATE);
                     fos.write(destination.getBytes());
-                    textView.setText("Saved to " + getFilesDir() + "/" + FILE_NAME);
+                    textView.setText(destination);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 } catch (IOException e) {
@@ -352,7 +352,7 @@ public class MainActivity extends Activity {
         bt_tomandtoms.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                destination = "탐앤탐스";
+                destination = "카페";
                 state_text = NAVIGATE;
                 speech_text = getString(R.string.str_navigate);
                 tts.ttsClient.play(speech_text);
@@ -362,7 +362,7 @@ public class MainActivity extends Activity {
                 try {
                     fos = openFileOutput(FILE_NAME, MODE_PRIVATE);
                     fos.write(destination.getBytes());
-                    textView.setText("Saved to " + getFilesDir() + "/" + FILE_NAME);
+                    textView.setText(destination);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 } catch (IOException e) {
@@ -475,7 +475,7 @@ public class MainActivity extends Activity {
                         try {
                             fos = openFileOutput(FILE_NAME, MODE_PRIVATE);
                             fos.write(destination.getBytes());
-                            textView.setText("Saved to " + getFilesDir() + "/" + FILE_NAME);
+                            textView.setText(destination);
                         } catch (FileNotFoundException e) {
                             e.printStackTrace();
                         } catch (IOException e) {
