@@ -44,7 +44,7 @@ public class MainActivity extends Activity {
     private static final int AMPLITUDE = 30;
     private static final String TAG = "MainActivity";   // 로그에 사용
     private static final String FILE_NAME = "destination.txt";
-    private static final String url = "http://192.168.1.187" + ":8080/ros_js.html";
+    private static final String url = "http://192.168.0.172" + ":8080/ros_js.html";
 
     // 음성 안내 순서를 알기 위한 string 변수
     // "_"는 "예/아니요"로 하는 음성 인식
@@ -123,6 +123,262 @@ public class MainActivity extends Activity {
             state_text = new String(EXPLANATION);
             //tts.ttsClient.play(speech_text);
         }
+
+
+        Button bt_osaka = findViewById(R.id.bt_osaka);
+        Button bt_chicken = findViewById(R.id.bt_chicken);
+        Button bt_cross = findViewById(R.id.bt_cross);
+        Button bt_cu = findViewById(R.id.bt_cu);
+        Button bt_lalavla = findViewById(R.id.bt_lalavla);
+        Button bt_superstar = findViewById(R.id.bt_superstar);
+        Button bt_tomandtoms = findViewById(R.id.bt_tomandtoms);
+        Button bt_busstop = findViewById(R.id.bt_busstop);
+
+        bt_busstop.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                destination = "정류장";
+                state_text = NAVIGATE;
+                speech_text = getString(R.string.str_navigate);
+                tts.ttsClient.play(speech_text);
+                mWebView.loadUrl("javascript:setflag('" + destination + "')");// js의 함수 setflag() : 목적지 이름을 변수에 저장
+
+                FileOutputStream fos = null;
+                try {
+                    fos = openFileOutput(FILE_NAME, MODE_PRIVATE);
+                    fos.write(destination.getBytes());
+                    textView.setText("Saved to " + getFilesDir() + "/" + FILE_NAME);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    if (fos != null) {
+                        try {
+                            fos.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        });
+
+        bt_osaka.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                destination = "오사카 브루스";
+                state_text = NAVIGATE;
+                speech_text = getString(R.string.str_navigate);
+                tts.ttsClient.play(speech_text);
+                mWebView.loadUrl("javascript:setflag('" + destination + "')");// js의 함수 setflag() : 목적지 이름을 변수에 저장
+
+                FileOutputStream fos = null;
+                try {
+                    fos = openFileOutput(FILE_NAME, MODE_PRIVATE);
+                    fos.write(destination.getBytes());
+                    textView.setText("Saved to " + getFilesDir() + "/" + FILE_NAME);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    if (fos != null) {
+                        try {
+                            fos.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        });
+
+        bt_chicken.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                destination = "고수 찜닭";
+                state_text = NAVIGATE;
+                speech_text = getString(R.string.str_navigate);
+                tts.ttsClient.play(speech_text);
+                mWebView.loadUrl("javascript:setflag('" + destination + "')");// js의 함수 setflag() : 목적지 이름을 변수에 저장
+
+                FileOutputStream fos = null;
+                try {
+                    fos = openFileOutput(FILE_NAME, MODE_PRIVATE);
+                    fos.write(destination.getBytes());
+                    textView.setText("Saved to " + getFilesDir() + "/" + FILE_NAME);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    if (fos != null) {
+                        try {
+                            fos.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        });
+
+
+        bt_cross.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                destination = "약사";
+                state_text = NAVIGATE;
+                speech_text = getString(R.string.str_navigate);
+                tts.ttsClient.play(speech_text);
+                mWebView.loadUrl("javascript:setflag('" + destination + "')");// js의 함수 setflag() : 목적지 이름을 변수에 저장
+
+                FileOutputStream fos = null;
+                try {
+                    fos = openFileOutput(FILE_NAME, MODE_PRIVATE);
+                    fos.write(destination.getBytes());
+                    textView.setText("Saved to " + getFilesDir() + "/" + FILE_NAME);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    if (fos != null) {
+                        try {
+                            fos.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        });
+
+
+        bt_cu.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                destination = "cu";
+                state_text = NAVIGATE;
+                speech_text = getString(R.string.str_navigate);
+                tts.ttsClient.play(speech_text);
+                mWebView.loadUrl("javascript:setflag('" + destination + "')");// js의 함수 setflag() : 목적지 이름을 변수에 저장
+
+                FileOutputStream fos = null;
+                try {
+                    fos = openFileOutput(FILE_NAME, MODE_PRIVATE);
+                    fos.write(destination.getBytes());
+                    textView.setText("Saved to " + getFilesDir() + "/" + FILE_NAME);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    if (fos != null) {
+                        try {
+                            fos.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        });
+
+
+        bt_lalavla.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                destination = "랄라 블라";
+                state_text = NAVIGATE;
+                speech_text = getString(R.string.str_navigate);
+                tts.ttsClient.play(speech_text);
+                mWebView.loadUrl("javascript:setflag('" + destination + "')");// js의 함수 setflag() : 목적지 이름을 변수에 저장
+
+                FileOutputStream fos = null;
+                try {
+                    fos = openFileOutput(FILE_NAME, MODE_PRIVATE);
+                    fos.write(destination.getBytes());
+                    textView.setText("Saved to " + getFilesDir() + "/" + FILE_NAME);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    if (fos != null) {
+                        try {
+                            fos.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        });
+
+
+        bt_superstar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                destination = "superstar";
+                state_text = NAVIGATE;
+                speech_text = getString(R.string.str_navigate);
+                tts.ttsClient.play(speech_text);
+                mWebView.loadUrl("javascript:setflag('" + destination + "')");// js의 함수 setflag() : 목적지 이름을 변수에 저장
+
+                FileOutputStream fos = null;
+                try {
+                    fos = openFileOutput(FILE_NAME, MODE_PRIVATE);
+                    fos.write(destination.getBytes());
+                    textView.setText("Saved to " + getFilesDir() + "/" + FILE_NAME);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    if (fos != null) {
+                        try {
+                            fos.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        });
+
+
+        bt_tomandtoms.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                destination = "탐앤탐스";
+                state_text = NAVIGATE;
+                speech_text = getString(R.string.str_navigate);
+                tts.ttsClient.play(speech_text);
+                mWebView.loadUrl("javascript:setflag('" + destination + "')");// js의 함수 setflag() : 목적지 이름을 변수에 저장
+
+                FileOutputStream fos = null;
+                try {
+                    fos = openFileOutput(FILE_NAME, MODE_PRIVATE);
+                    fos.write(destination.getBytes());
+                    textView.setText("Saved to " + getFilesDir() + "/" + FILE_NAME);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    if (fos != null) {
+                        try {
+                            fos.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        });
+
 
         // rosbridge랑 연결이 끊겼을 경우 html 다시 로드하는 버튼
         reloadbutton.setOnClickListener(new View.OnClickListener() {
@@ -212,7 +468,8 @@ public class MainActivity extends Activity {
                         state_text = NAVIGATE;
                         speech_text = getString(R.string.str_navigate);
                         tts.ttsClient.play(speech_text);
-                        mWebView.loadUrl("javascript:setflag('" + destination + "')");// js의 함수 setflag() : 목적지 이름을 변수에 저장
+
+                        mWebView.loadUrl("javascript:setflag('" + Destination() + "')");// js의 함수 setflag() : 목적지 이름을 변수에 저장
 
                         FileOutputStream fos = null;
                         try {
@@ -292,6 +549,27 @@ public class MainActivity extends Activity {
         finish();
         System.exit(0);
         android.os.Process.killProcess(android.os.Process.myPid());
+    }
+
+    public String Destination() {
+        String des = new String();
+
+        if (destination == "오사카 브루스" || destination == "오사카브루스" || destination == "술집")
+            des = "술집";
+        else if (destination == "랄라블라" || destination == "랄라 블라" || destination == "가게")
+            des = "가게";
+        else if (destination == "cu" || destination == "CU" || destination == "씨유" || destination == "편의점")
+            des = "편의점";
+        else if (destination == "탐앤탐스" || destination == "탐 앤 탐스" || destination == "탐앤 탐스" || destination == "카페" || destination == "cafe")
+            des = "카페";
+        else if (destination == "superstar" || destination == "super star" || destination == "슈퍼스타" || destination == "슈퍼 스타" || destination == "노래방")
+            des = "노래방";
+        else if (destination == "약국사거리" || destination == "약사")
+            des = "약사";
+        else if (destination == "고수 찜닭" || destination == "고수찜닭" || destination == "식당")
+            des = "식당";
+
+        return des;
     }
 
 
