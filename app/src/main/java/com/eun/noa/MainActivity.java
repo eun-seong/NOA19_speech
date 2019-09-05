@@ -38,7 +38,6 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 
 
-
 public class MainActivity extends Activity {
     private static final int REQUEST_CODE_AUDIO_AND_WRITE_EXTERNAL_STORAGE = 0;
     private static final int VIBRATESECONDS = 200;
