@@ -10,81 +10,92 @@
         android:layout_width="match_parent"
         android:layout_height="50dp"
         android:orientation="horizontal">
+
         <Button
             android:id="@+id/bt_osaka"
             android:layout_width="40pt"
             android:layout_height="50dp"
-            android:text="오사카"
-            android:layout_margin="2dp"/>
+            android:layout_margin="2dp"
+            android:text="오사카" />
+
         <Button
             android:id="@+id/bt_cu"
             android:layout_width="40pt"
             android:layout_height="50dp"
-            android:text="CU"
-            android:layout_margin="2dp"/>
+            android:layout_margin="2dp"
+            android:text="CU" />
+
         <Button
             android:id="@+id/bt_lalavla"
             android:layout_width="40pt"
             android:layout_height="50dp"
-            android:text="랄라"
-            android:layout_margin="2dp"/>
+            android:layout_margin="2dp"
+            android:text="랄라" />
+
         <Button
             android:id="@+id/bt_chicken"
             android:layout_width="40pt"
             android:layout_height="50dp"
-            android:text="고찜"
-            android:layout_margin="2dp"/>
+            android:layout_margin="2dp"
+            android:text="고찜" />
     </LinearLayout>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="50dp"
         android:orientation="horizontal">
+
         <Button
             android:id="@+id/bt_superstar"
             android:layout_width="40pt"
             android:layout_height="50dp"
-            android:text="노래"
-            android:layout_margin="2dp"/>
+            android:layout_margin="2dp"
+            android:text="노래" />
+
         <Button
             android:id="@+id/bt_cross"
             android:layout_width="40pt"
             android:layout_height="50dp"
-            android:text="약사"
-            android:layout_margin="2dp"/>
+            android:layout_margin="2dp"
+            android:text="약사" />
+
         <Button
             android:id="@+id/bt_tomandtoms"
             android:layout_width="40pt"
             android:layout_height="50dp"
-            android:text="탐탐"
-            android:layout_margin="2dp"/>
+            android:layout_margin="2dp"
+            android:text="탐탐" />
+
         <Button
             android:id="@+id/bt_busstop"
             android:layout_width="40pt"
             android:layout_height="50dp"
-            android:text="908"
-            android:layout_margin="2dp"/>
+            android:layout_margin="2dp"
+            android:text="908" />
 
     </LinearLayout>
 
+
     <TextView
-        android:id="@+id/tv"
-        android:layout_width="wrap_content"
+        android:id="@+id/tv_speech"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="음성 인식한 단어"
-        android:layout_margin="2dp"/>
+        android:layout_margin="2dp"
+        android:text="음성 인식한 단어" />
+
 
     <WebView
         android:id="@+id/webView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="2dp"/>
+        android:layout_margin="2dp" />
 
     <Button
         android:id="@+id/bt_reload"
         android:layout_width="match_parent"
         android:layout_height="50dp"
-        android:text="reload"
-        android:layout_margin="2dp"/>
+        android:layout_margin="2dp"
+        android:text="reload" />
 
     <ImageButton
         android:id="@+id/bt"
@@ -92,8 +103,8 @@
         android:layout_height="match_parent"
         android:layout_gravity="center"
         android:background="#00ff0000"
-        android:src="@drawable/noa_background"
-        android:scaleType="fitCenter"/>
+        android:scaleType="fitCenter"
+        android:src="@drawable/noa_background" />
 
 
 </LinearLayout>

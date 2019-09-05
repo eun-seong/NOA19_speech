@@ -97,7 +97,7 @@ public class MainActivity extends Activity {
         mWebView = (WebView) findViewById(R.id.webView);
         button = findViewById(R.id.bt);
         reloadbutton = findViewById(R.id.bt_reload);
-        textView = findViewById(R.id.tv);
+        textView = findViewById(R.id.tv_speech);
         vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 
@@ -469,7 +469,7 @@ public class MainActivity extends Activity {
                         speech_text = getString(R.string.str_navigate);
                         tts.ttsClient.play(speech_text);
 
-                        mWebView.loadUrl("javascript:setflag('" + Destination() + "')");// js의 함수 setflag() : 목적지 이름을 변수에 저장
+                        mWebView.loadUrl("javascript:setflag('" + destination + "')");// js의 함수 setflag() : 목적지 이름을 변수에 저장
 
                         FileOutputStream fos = null;
                         try {
@@ -551,28 +551,6 @@ public class MainActivity extends Activity {
         android.os.Process.killProcess(android.os.Process.myPid());
     }
 
-    public String Destination() {
-        String des = new String();
-
-        if (destination == "오사카 브루스" || destination == "오사카브루스" || destination == "술집")
-            des = "술집";
-        else if (destination == "랄라블라" || destination == "랄라 블라" || destination == "가게")
-            des = "가게";
-        else if (destination == "cu" || destination == "CU" || destination == "씨유" || destination == "편의점")
-            des = "편의점";
-        else if (destination == "탐앤탐스" || destination == "탐 앤 탐스" || destination == "탐앤 탐스" || destination == "카페" || destination == "cafe")
-            des = "카페";
-        else if (destination == "superstar" || destination == "super star" || destination == "슈퍼스타" || destination == "슈퍼 스타" || destination == "노래방")
-            des = "노래방";
-        else if (destination == "약국사거리" || destination == "약사")
-            des = "약사";
-        else if (destination == "고수 찜닭" || destination == "고수찜닭" || destination == "식당")
-            des = "식당";
-
-        return des;
-    }
-
-
     /***************************************************************************************************************************/
     /***************************************************************************************************************************/
     /***************************************************************************************************************************/
@@ -585,7 +563,7 @@ public class MainActivity extends Activity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    TextView textView = findViewById(R.id.tv);
+                    TextView textView = findViewById(R.id.tv_speech);
                     textView.setText("Success Arrival");
                     button.setEnabled(false);
                     state_text = ARRIVAL;
@@ -605,7 +583,7 @@ public class MainActivity extends Activity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    TextView textView = findViewById(R.id.tv);
+                    TextView textView = findViewById(R.id.tv_speech);
                     textView.setText("There are Stairs");
 
                     if (!tts.ttsClient.isPlaying()) {
@@ -624,7 +602,7 @@ public class MainActivity extends Activity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    TextView textView = findViewById(R.id.tv);
+                    TextView textView = findViewById(R.id.tv_speech);
                     textView.setText("BlueNumber");
 
                     if (!tts.ttsClient.isPlaying()) {
@@ -651,7 +629,7 @@ public class MainActivity extends Activity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    TextView textView = findViewById(R.id.tv);
+                    TextView textView = findViewById(R.id.tv_speech);
                     textView.setText("BlueLight");
                     TRAFFIC_BLUE = true;
 
@@ -663,6 +641,7 @@ public class MainActivity extends Activity {
                     }
                     audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC), AudioManager.FLAG_PLAY_SOUND);
                     Log.i(TAG, "초록불");
+                    mWebView.loadUrl("javascript:initialize()");
                 }
             });
         }
@@ -672,7 +651,7 @@ public class MainActivity extends Activity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    TextView textView = findViewById(R.id.tv);
+                    TextView textView = findViewById(R.id.tv_speech);
                     textView.setText("RedLight");
 
                     if (!tts.ttsClient.isPlaying()) {
@@ -910,6 +889,7 @@ public class MainActivity extends Activity {
 
                     if (state_text == NAVIGATE && TRAFFIC_BLUE) {
                         mWebView.loadUrl("javascript:sendmsg()");// js의 함수 sendmsg() : ros로 msg를 보내기
+                        textView.setText(destination);
                         TRAFFIC_BLUE = false;
                     }
                 }
