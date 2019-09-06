@@ -61,14 +61,14 @@ public class MainActivity extends Activity {
     private static final String RERECORD_ = "RERECORD_";
     private static final String RESTART_ = "RESTART_";
 
-    private static boolean flag_trafficNumber = false;
-    private static boolean TRAFFIC_BLUE = false;
+    //    private static boolean TRAFFIC_BLUE = false;
     private static long backKeyPressedTime;                    // 앱종료 위한 백버튼 누른시간
     private static String speech_text;                         // 음성인식한 단어 저장
     private static String state_text = null;                   // 음성 안내 상태 저장 변수 -> 밑의 변수랑 같이 이용
     private static String destination;
     private static String prev_destination;
     private static String prev_state;
+    private static String flag_traffic;
 
     // 레이아웃 변수
     private static ImageButton button;
@@ -120,6 +120,7 @@ public class MainActivity extends Activity {
         // 앱 켰을 때 시작
         if (state_text == null) {
             speech_text = getString(R.string.str_start);
+            flag_traffic = new String("-1");
             state_text = new String(EXPLANATION);
             tts.ttsClient.play(speech_text);
         }
@@ -606,20 +607,21 @@ public class MainActivity extends Activity {
                     textView.setText("BlueNumber");
 
                     if (!tts.ttsClient.isPlaying()) {
-                        if (!flag_trafficNumber) {
-                            flag_trafficNumber = true;
-                            button.setEnabled(false);
-                            speech_text = getString(R.string.str_redlight);
-                            tts.ttsClient.play(speech_text);
-
-                        } else {
+                        if (flag_traffic.equals("NUMBER")) {
                             speech_text = Integer.toString(number);
                             button.setEnabled(false);
                             tts.ttsClient.play(speech_text);
+                            Log.i(TAG, Integer.toString(number));
+                        } else if (flag_traffic.equals("-1") || flag_traffic.equals("RED")) {
+                            flag_traffic = "NUMBER";
+                            button.setEnabled(false);
+                            speech_text = getString(R.string.str_redlight);
+                            tts.ttsClient.play(speech_text);
+                            Log.i(TAG, "초록불");
                         }
+                        if (number == 1) flag_traffic = "RED";
+                        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC), AudioManager.FLAG_PLAY_SOUND);
                     }
-                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC), AudioManager.FLAG_PLAY_SOUND);
-                    Log.i(TAG, Integer.toString(number));
                 }
             });
         }
@@ -631,23 +633,22 @@ public class MainActivity extends Activity {
                 public void run() {
                     TextView textView = findViewById(R.id.tv_speech);
                     textView.setText("BlueLight");
-                    TRAFFIC_BLUE = true;
 
-                    if (!tts.ttsClient.isPlaying()) {
-                        flag_trafficNumber = false;
+                    if ((!tts.ttsClient.isPlaying()) && (flag_traffic.equals("-1") || flag_traffic.equals("RED"))) {
                         button.setEnabled(false);
                         speech_text = getString(R.string.str_bluelight);
                         tts.ttsClient.play(speech_text);
+                        flag_traffic = "GREEN";
+                        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC), AudioManager.FLAG_PLAY_SOUND);
+                        Log.i(TAG, "FLAG : " + flag_traffic);
+                        mWebView.loadUrl("javascript:initialize()");
                     }
-                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC), AudioManager.FLAG_PLAY_SOUND);
-                    Log.i(TAG, "초록불");
-                    mWebView.loadUrl("javascript:initialize()");
                 }
             });
         }
 
         @JavascriptInterface
-        public void RedLightisOn() {       // 신호등 빨간불
+        public void isRedLightisOn() {       // 신호등 빨간불
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -655,16 +656,14 @@ public class MainActivity extends Activity {
                     textView.setText("RedLight");
 
                     if (!tts.ttsClient.isPlaying()) {
-                        if (flag_trafficNumber)
-                            flag_trafficNumber = false;
-                        else {
+                        if (flag_traffic.equals("-1")) {
                             button.setEnabled(false);
                             speech_text = getString(R.string.str_redlight);
                             tts.ttsClient.play(speech_text);
                         }
+                        flag_traffic = "RED";
+                        Log.i(TAG, "FLAG : " + flag_traffic);
                     }
-                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC), AudioManager.FLAG_PLAY_SOUND);
-                    Log.i(TAG, "빨간불");
                 }
             });
         }
@@ -784,7 +783,7 @@ public class MainActivity extends Activity {
                     button.setEnabled(true);
                 }
             });
-            if (!flag_trafficNumber)
+            if (!flag_traffic.equals("NUMBER"))
                 vibrator.vibrate(VibrationEffect.createOneShot(VIBRATESECONDS, AMPLITUDE));
         }
 
@@ -887,11 +886,15 @@ public class MainActivity extends Activity {
                     button.setEnabled(true);
                     vibrator.vibrate(VibrationEffect.createOneShot(VIBRATESECONDS, AMPLITUDE));
 
-                    if (state_text == NAVIGATE && TRAFFIC_BLUE) {
+                    if (state_text == NAVIGATE) {
+                        if (flag_traffic.equals("GREEN"))
+                            textView.setText(destination);
                         mWebView.loadUrl("javascript:sendmsg()");// js의 함수 sendmsg() : ros로 msg를 보내기
-                        textView.setText(destination);
-                        TRAFFIC_BLUE = false;
                     }
+
+
+                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC), AudioManager.FLAG_PLAY_SOUND);
+                    Log.i(TAG, "빨간불");
                 }
             });
 
