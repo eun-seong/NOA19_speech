@@ -121,7 +121,7 @@ public class MainActivity extends Activity {
         if (state_text == null) {
             speech_text = getString(R.string.str_start);
             state_text = new String(EXPLANATION);
-            //tts.ttsClient.play(speech_text);
+            tts.ttsClient.play(speech_text);
         }
 
 
