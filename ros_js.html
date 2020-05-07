@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>NOA_ROS_JS</title>
+
+  <!-- ros library -->
+  <script type="text/javascript"
+    src="http://static.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+  <script type="text/javascript" src="http://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+
+  <script type="text/javascript" type="text/javascript">
+    var recieveflag = 0;    // 목적지 값
+    var signal_value = -1;
+    var URL = "ws://" + "192.168.1.187" + ":9091";
+
+    // 목적지 string 변수
+    // ---------------
+    var school = '학교';
+    var hospital = '병원';
+    var home = '집';
+    var pharmacy = '약국'
+    var cross = '약사';
+
+    // 목적지 좌표
+    // ---------
+    var school_msg = new ROSLIB.Message({
+      position: {
+        x: 0.785024285316,
+        y: -2.77327513695,
+        z: 0.0
+      },
+      orientation: {
+        x: 0.0,
+        y: 0.0,
+        z: 0.99977107344,
+        w: -0.0213962780158
+
+      }
+    });
+
+    var hospital_msg = new ROSLIB.Message({
+      position: {
+        x: -0.568678021431,
+        y: -2.40603637695,
+        z: 0.0
+      },
+      orientation: {
+        x: 0.0,
+        y: 0.0,
+        z: 0.903314736243,
+        w: 0.428978422869
+      }
+    });
+
+    var home_msg = new ROSLIB.Message({
+      position: {
+        x: -0.911418020725,
+        y: 0.358431220055,
+        z: 0.0
+      },
+      orientation: {
+        x: 0.0,
+        y: 0.0,
+        z: 0.712576556331,
+        w: 0.701594363837
+      }
+    });
+
+    var pharmacy_msg = new ROSLIB.Message({
+      position: {
+        x: 0.46665212512,
+        y: -0.757958590984,
+        z: 0.0
+      },
+      orientation: {
+        x: 0.0,
+        y: 0.0,
+        z: 0.999968932088,
+        w: -0.00788256675055
+      }
+    });
+
+    var cross_msg = new ROSLIB.Message({
+      position: {
+        x: -1.1052479744,
+        y: -2.07358026505,
+        z: 0.0
+      },
+      orientation: {
+        x: 0.0,
+        y: 0.0,
+        z: 0.722073563506,
+        w: 0.691816282611,
+      }
+    });
+
+
+    // Connecting to ROS
+    // -----------------
+
+    var ros = new ROSLIB.Ros({
+      url: URL
+    });
+
+    // If there is an error on the backend, an 'error' emit will be emitted.
+    ros.on('error', function (error) {
+      document.getElementById('connecting').style.display = 'none';
+      document.getElementById('connected').style.display = 'none';
+      document.getElementById('closed').style.display = 'none';
+      document.getElementById('error').style.display = 'inline';
+      console.log(error);
+    });
+    // Find out exactly when we made a connection.
+    ros.on('connection', function () {
+      console.log('Connection made!');
+      document.getElementById('connecting').style.display = 'none';
+      document.getElementById('error').style.display = 'none';
+      document.getElementById('closed').style.display = 'none';
+      document.getElementById('connected').style.display = 'inline';
+    });
+    ros.on('close', function () {
+      console.log('Connection closed.');
+      document.getElementById('connecting').style.display = 'none';
+      document.getElementById('connected').style.display = 'none';
+      document.getElementById('closed').style.display = 'inline';
+    });
+
+    // Publishing a Topic
+    // ------------------
+    // 목적지 전달
+    var dst = new ROSLIB.Topic({
+      ros: ros,
+      name: '/move_base_simple/goal',
+      messageType: 'geometry_msgs/PoseStamped'
+    });
+
+    // 목적지 도착 안내 
+    var isSuccess = new ROSLIB.Topic({
+      ros: ros,
+      name: '/isSuccess',
+      messageType: 'std_msgs/Int32'
+    });
+
+    // Traffic Light
+    var islight = new ROSLIB.Topic({
+      ros: ros,
+      name: '/signal_flag',
+      messageType: 'std_msgs/Int32'
+    });
+
+    // 코어에게 msg 보낼 함수
+    function sendmsg() {
+      document.getElementById("name").innerHTML = recieveflag;
+
+      if (recieveflag == school) {
+        var msg = new ROSLIB.Message({
+          header: {
+            frame_id: 'map'
+          },
+          pose: school_msg
+        });
+      } else if (recieveflag == hospital) {
+        var msg = new ROSLIB.Message({
+          header: {
+            frame_id: 'map'
+          },
+          pose: hospital_msg
+        });
+      } else if (recieveflag == home) {
+        var msg = new ROSLIB.Message({
+          header: {
+            frame_id: 'map'
+          },
+          pose: home_msg
+        });
+      } else if (recieveflag == pharmacy) {
+        var msg = new ROSLIB.Message({
+          header: {
+            frame_id: 'map'
+          },
+          pose: pharmacy_msg
+        });
+      } else if (recieveflag == cross) {
+        var msg = new ROSLIB.Message({
+          header: {
+            frame_id: 'map'
+          },
+          pose: cross_msg
+        });
+      }
+
+      dst.publish(msg);
+    }
+
+    // 목적지에 도착할 경우
+    isSuccess.subscribe(function (message) {
+      if (message.data == 1 && window.NOA.getState() == "NAVIGATE") {
+        document.getElementById("name").innerHTML = "Success!";
+
+        // 안드로이드의 SuccessArrival() 함수 실행
+        window.NOA.SuccessArrival();
+      }
+    });
+
+
+    // traffic lights
+    islight.subscribe(function (message) {
+      // 한 번만 인식하게
+      if (signal_value != message.data && window.NOA.getState() == "NAVIGATE") {
+        signal_value = message.data;
+        switch (signal_value) {
+          case 0:   // 빨간불
+            document.getElementById("name").innerHTML = "The red light is on";
+            // 안드로이드의 RedLightisOn() 함수 실행
+            window.NOA.RedLightisOn();
+            break;
+
+          case 6:   // 초록불
+            document.getElementById("name").innerHTML = "The blue light is on";
+            // 안드로이드의 BlueLightisOn() 함수 실행
+            window.NOA.BlueLightOn();
+            break;
+
+          case 8:   // 계단
+            document.getElementById("name").innerHTML = "There is stairs!";
+            // 안드로이드의 thereIsStairs() 함수 실행
+            window.NOA.thereIsStairs();
+            break;
+
+          default:  // 숫자
+            document.getElementById("name").innerHTML = "The blue light: " + signal_value;
+            // 안드로이드의 BlueNumber() 함수 실행
+            window.NOA.BlueNumber(signal_value);
+            break;
+        }
+      }
+    });
+
+
+    // 안드로이드에서 목적지를 전달받는 함수
+    function setflag(flagFromAndroid) {
+      recieveflag = flagFromAndroid;
+    }
+
+  </script>
+
+</head>
+
+<body>
+  <p id="name">
+    웹뷰 텍스트
+  </p>
+  <div id="statusIndicator">
+    <p id="connecting">
+      Connecting to rosbridge...
+    </p>
+    <p id="connected" style="color:#00D600; display:none">
+      Connected
+    </p>
+    <p id="error" style="color:#FF0000; display:none">
+      Error in the backend!
+    </p>
+    <p id="closed" style="display:none">
+      Connection closed.
+    </p>
+  </div>
+
+</body>
+
+</html>
